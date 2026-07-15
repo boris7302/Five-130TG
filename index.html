@@ -23,6 +23,25 @@
 
   <!-- Telegram Mini Apps SDK (обязателен для WebApp API) -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    // Flutter CanvasKit в WebView Telegram часто даёт пустой экран.
+    // Внутри Telegram сразу открываем лёгкий HTML-клиент.
+    (function () {
+      try {
+        var tw = window.Telegram && window.Telegram.WebApp;
+        if (tw) {
+          tw.ready();
+          tw.expand();
+          if (tw.initData) {
+            var target = new URL('tg.html', document.baseURI).href;
+            if (location.href.indexOf('tg.html') === -1) {
+              location.replace(target);
+            }
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">

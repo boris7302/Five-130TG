@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Пятак-130</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    :root {
+      --bg: #1b4d3e;
+      --panel: #143d31;
+      --text: #f5f0e6;
+      --muted: rgba(245, 240, 230, 0.7);
+      --tile: #f5f0e6;
+      --tile-bot: #e8eef5;
+      --accent: #c9a227;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    }
+    body { display: flex; flex-direction: column; min-height: 100%; }
+    header {
+      padding: 12px 16px 8px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; font-weight: 800; }
+    #score { font-weight: 700; }
+    #status { padding: 0 16px 8px; color: var(--muted); font-size: 0.9rem; }
+    #board-wrap {
+      flex: 1; margin: 0 12px; border-radius: 16px; overflow: hidden;
+      border: 1px solid rgba(0,0,0,.25); background: #164536; min-height: 240px;
+      position: relative;
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    #hand-label { padding: 8px 16px 4px; font-size: 0.85rem; color: var(--muted); }
+    #hand {
+      display: flex; gap: 8px; overflow-x: auto; padding: 4px 12px 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tile-btn {
+      flex: 0 0 auto; width: 56px; height: 72px; border-radius: 10px;
+      border: 2px solid #8b6914; background: var(--tile); color: #222;
+      font-weight: 700; font-size: 15px; cursor: pointer;
+    }
+    .tile-btn.selected {
+      border-color: var(--accent); border-width: 3px; background: #fff3c4;
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    #actions {
+      display: flex; gap: 12px; padding: 8px 16px 20px;
+    }
+    button.action {
+      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+    }
+    #bazaar { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.35) !important; border-style: solid; }
+    #move { background: var(--accent); color: #1a1408; }
+    #move:disabled { opacity: 0.45; cursor: default; }
+    #note {
+      padding: 0 16px 12px; font-size: 0.75rem; color: var(--muted); text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Пятак-130</h1>
+    <div id="score">40 : 25</div>
+  </header>
+  <div id="status">Демо-стол · vs бот · цель 125/130</div>
+  <div id="board-wrap"><canvas id="board"></canvas></div>
+  <div id="hand-label">Ваша рука</div>
+  <div id="hand"></div>
+  <div id="actions">
+    <button class="action" id="bazaar" type="button">Базар</button>
+    <button class="action" id="move" type="button" disabled>Ход</button>
+  </div>
+  <div id="note">HTML Mini App (Flutter в WebView Telegram часто пустой). Правила подключим позже.</div>
+
+  <script>
+    const tg = window.Telegram && window.Telegram.WebApp;
+    if (tg) {
+      try {
+        tg.ready();
+        tg.expand();
+        if (tg.themeParams && tg.themeParams.bg_color) {
+          document.body.style.background = tg.themeParams.bg_color;
+        }
+      } catch (e) {}
+    }
+
+    const placed = [
+      { a: 5, b: 5, x: 0, y: 0, horiz: false, human: true },
+      { a: 5, b: 3, x: -1, y: 0, horiz: true, human: false },
+      { a: 2, b: 5, x: 1, y: 0, horiz: true, human: true },
+      { a: 5, b: 1, x: 0, y: -1, horiz: false, human: false },
+      { a: 6, b: 5, x: 0, y: 1, horiz: false, human: true },
+      { a: 3, b: 0, x: -2, y: 0, horiz: true, human: false },
+    ];
+    const hand = [
+      [4, 4], [6, 2], [1, 0], [3, 6], [2, 2],
+    ];
+    let selected = null;
+
+    const handEl = document.getElementById('hand');
+    const moveBtn = document.getElementById('move');
+    hand.forEach((t, i) => {
+      const b = document.createElement('button');
+      b.className = 'tile-btn';
+      b.type = 'button';
+      b.textContent = t[0] + '|' + t[1];
+      b.onclick = () => {
+        selected = i;
+        [...handEl.children].forEach((c, j) => c.classList.toggle('selected', j === i));
+        moveBtn.disabled = false;
+      };
+      handEl.appendChild(b);
+    });
+
+    document.getElementById('bazaar').onclick = () => {
+      alert('Базар — подключится вместе с движком');
+    };
+    moveBtn.onclick = () => {
+      if (selected == null) return;
+      const t = hand[selected];
+      alert('Ход [' + t[0] + '|' + t[1] + '] — stub UI');
+    };
+
+    const canvas = document.getElementById('board');
+    const wrap = document.getElementById('board-wrap');
+    const ctx = canvas.getContext('2d');
+
+    function pipLayout(v) {
+      const c = 0.5, n = 0.28, f = 0.72, m = 0.5;
+      switch (v) {
+        case 0: return [];
+        case 1: return [[c, c]];
+        case 2: return [[n, n], [f, f]];
+        case 3: return [[n, n], [c, c], [f, f]];
+        case 4: return [[n, n], [f, n], [n, f], [f, f]];
+        case 5: return [[n, n], [f, n], [c, c], [n, f], [f, f]];
+        case 6: return [[n, 0.22], [f, 0.22], [n, m], [f, m], [n, 0.78], [f, 0.78]];
+        default: return [[c, c]];
+      }
+    }
+
+    function drawTile(cx, cy, tile, cell) {
+      const w = tile.horiz ? cell * 1.65 : cell * 0.85;
+      const h = tile.horiz ? cell * 0.85 : cell * 1.65;
+      const x = cx - w / 2, y = cy - h / 2;
+      const r = 8;
+      ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
+      ctx.strokeStyle = tile.human ? '#8b6914' : '#3a5a8c';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      if (tile.horiz) {
+        ctx.moveTo(cx, y + 6); ctx.lineTo(cx, y + h - 6);
+      } else {
+        ctx.moveTo(x + 6, cy); ctx.lineTo(x + w - 6, cy);
+      }
+      ctx.strokeStyle = tile.human ? 'rgba(139,105,20,0.45)' : 'rgba(58,90,140,0.45)';
+      ctx.stroke();
+
+      const color = tile.human ? '#8b6914' : '#3a5a8c';
+      function pips(hx, hy, hw, hh, val) {
+        const pr = Math.min(hw, hh) * 0.09;
+        pipLayout(val).forEach(([px, py]) => {
+          ctx.beginPath();
+          ctx.fillStyle = color;
+          ctx.arc(hx + hw * px, hy + hh * py, pr, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      }
+      if (tile.horiz) {
+        pips(x, y, w / 2, h, tile.a);
+        pips(cx, y, w / 2, h, tile.b);
+      } else {
+        pips(x, y, w, h / 2, tile.a);
+        pips(x, cy, w, h / 2, tile.b);
+      }
+    }
+
+    function paint() {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = wrap.getBoundingClientRect();
+      canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+      canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const W = rect.width, H = rect.height;
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#164536';
+      ctx.fillRect(0, 0, W, H);
+      const cell = Math.min(W, H) / 7;
+      const gap = 4;
+      const ox = W / 2, oy = H / 2;
+      placed.forEach((t) => {
+        drawTile(ox + t.x * (cell + gap), oy + t.y * (cell + gap), t, cell);
+      });
+    }
+
+    paint();
+    window.addEventListener('resize', paint);
+    if (tg && tg.onEvent) {
+      try { tg.onEvent('viewportChanged', paint); } catch (e) {}
+    }
+  </script>
+</body>
+</html>
