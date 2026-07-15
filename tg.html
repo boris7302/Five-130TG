@@ -43,12 +43,12 @@
     .tile-btn.selected {
       border-color: var(--accent); border-width: 3px; background: #fff3c4;
     }
-    #actions { display: flex; gap: 12px; padding: 8px 16px 20px; }
+    #actions { display: flex; gap: 12px; padding: 8px 16px 8px; flex-wrap: wrap; }
     button.action {
-      flex: 1; padding: 14px; border-radius: 12px; border: none;
+      flex: 1; min-width: 90px; padding: 14px; border-radius: 12px; border: none;
       font-size: 1rem; font-weight: 600;
     }
-    #bazaar {
+    #bazaar, #save, #list {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.35);
     }
@@ -57,6 +57,7 @@
     #note {
       padding: 0 16px 12px; font-size: 0.75rem; color: var(--muted); text-align: center;
     }
+    #store-status { padding: 0 16px 10px; font-size: 0.8rem; color: var(--muted); }
     #banner {
       background: #c9a227; color: #1a1408; text-align: center;
       padding: 8px; font-weight: 700; font-size: 14px;
@@ -76,9 +77,14 @@
   <div id="actions">
     <button class="action" id="bazaar" type="button">Базар</button>
     <button class="action" id="move" type="button" disabled>Ход</button>
+    <button class="action" id="save" type="button">Сохранить</button>
+    <button class="action" id="list" type="button">Партии</button>
   </div>
-  <div id="note">Без внешних скриптов. Telegram.WebApp подключается, только если уже есть.</div>
+  <div id="store-status">MatchStore: …</div>
+  <div id="note">Хранение: ключ=значение в IndexedDB (см. docs/MATCH_STORE.md). Движок — порт на Dart.</div>
 
+  <script src="js/kv_parse.js"></script>
+  <script src="js/match_store.js"></script>
   <script>
     (function () {
       try {
@@ -88,6 +94,17 @@
           if (typeof tw.expand === 'function') tw.expand();
         }
       } catch (e) {}
+
+      var storeStatus = document.getElementById('store-status');
+      function setStoreStatus(msg) {
+        if (storeStatus) storeStatus.textContent = msg;
+      }
+      try {
+        var oid = window.Five130MatchStore ? Five130MatchStore.ownerId() : 'guest';
+        setStoreStatus('MatchStore · owner=' + oid);
+      } catch (e) {
+        setStoreStatus('MatchStore недоступен');
+      }
 
       var placed = [
         { a: 5, b: 5, x: 0, y: 0, horiz: false, human: true },
@@ -124,6 +141,49 @@
         if (selected == null) return;
         var t = hand[selected];
         alert('Ход [' + t[0] + '|' + t[1] + '] — stub');
+      };
+
+      var scoreEl = document.getElementById('score');
+      document.getElementById('save').onclick = function () {
+        if (!window.Five130MatchStore) {
+          alert('MatchStore не загружен');
+          return;
+        }
+        var scoreTxt = (scoreEl && scoreEl.textContent || '0 : 0').replace(/\s/g, '');
+        var parts = scoreTxt.split(':');
+        var finalScore = (parts[0] || '0') + ',' + (parts[1] || '0');
+        Five130MatchStore.saveStubFromUi({
+          final_score: finalScore,
+          match_winner: '0',
+          status: 'stub-demo',
+          game_type: 'five130',
+        }).then(function (r) {
+          setStoreStatus('Сохранено · ' + r.match_id);
+          alert('Партия сохранена:\n' + r.match_id);
+        }).catch(function (err) {
+          setStoreStatus('Ошибка сохранения');
+          alert(String(err));
+        });
+      };
+      document.getElementById('list').onclick = function () {
+        if (!window.Five130MatchStore) {
+          alert('MatchStore не загружен');
+          return;
+        }
+        Five130MatchStore.listMatches().then(function (idx) {
+          if (!idx.items.length) {
+            alert('Партий пока нет (owner=' + idx.owner + ')');
+            setStoreStatus('MatchStore · owner=' + idx.owner + ' · 0 партий');
+            return;
+          }
+          var lines = idx.items.slice(0, 10).map(function (it, i) {
+            return (i + 1) + '. ' + it.id + ' · ' + it.final_score + ' · ' + it.result;
+          });
+          setStoreStatus('MatchStore · owner=' + idx.owner + ' · ' + idx.items.length + ' парт.');
+          alert('Партии (owner=' + idx.owner + '):\n' + lines.join('\n'));
+        }).catch(function (err) {
+          alert(String(err));
+        });
       };
 
       function pipLayout(v) {
