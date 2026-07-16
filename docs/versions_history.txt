@@ -48,4 +48,4 @@ app.rev=043
 040  6a94b1c  Header: mobile clock row; desktop score/stones labels (очки/камни).
 041  32dc037  Center stat labels; desktop ~2× width shell (1040px); rev.041.
 042  f47e893  Desktop-only fullscreen; ui-desktop layout; sync index.html; rev.042.
-043  (pending)  Stones header: digits under «камни», Вы/ПК below numbers; rev.043.
+043  0321bf9  Stones header: digits under «камни», Вы/ПК below numbers; rev.043.
