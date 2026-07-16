@@ -52,3 +52,4 @@ app.rev=045
 043  0321bf9  Stones header: digits under «камни», Вы/ПК below numbers; rev.043.
 044  7101d58  Freeze v0.001: docs, chats archive, release note (линия закрыта).
 045  f51c409  Open v0.002: APP_VERSION=0.002, session log YYYY/MM/DD HH:MM:SS.
+046  af43859  docs: PvP Telegram plan for v0.002.
