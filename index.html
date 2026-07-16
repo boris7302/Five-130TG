@@ -548,9 +548,14 @@
         var shrinkTarget = cfgBoard.shrinkTarget != null ? cfgBoard.shrinkTarget : 0.78;
         var minPx = cfgBoard.cellMinPx != null ? cfgBoard.cellMinPx : 22;
         var prefFrac = cfgBoard.prefFrac != null ? cfgBoard.prefFrac : 0.14;
-        var cellPref = Math.min(cfgBoard.cellMaxPx || 44, Math.min(viewW, viewH) * prefFrac);
+        var cellMax = cfgBoard.cellMaxPx || 44;
+        var cellPref = Math.min(cellMax, Math.min(viewW, viewH) * prefFrac);
+        // ≤2 камня: не меньше cell_pref (раньше ошибочно жали scale.start/0.55 ≈ ×0.5).
+        // scale.start — множитель ≥1 к cell_pref (мобильная читаемость первого хода).
         if (placed.length <= 2) {
-          cellPref = Math.min(cellPref, Math.min(viewW, viewH) * prefFrac * (cfgBoard.scaleStart / 0.55));
+          var startMul = cfgBoard.scaleStart != null ? cfgBoard.scaleStart : 1.2;
+          if (startMul < 1) startMul = 1.2; // legacy 0.275 → больше не сжимаем
+          cellPref = Math.min(cellMax, cellPref * startMul);
         }
         var availW = Math.max(1, viewW * (0.5 - margin));
         var availH = Math.max(1, viewH * (0.5 - margin));
@@ -939,7 +944,7 @@
         cellMaxPx: 44,
         cellMinPx: 22,
         scaleNormal: 0.55,
-        scaleStart: 0.275,
+        scaleStart: 1.2,
         prefFrac: 0.14,
         margin: 0.06,
         shrinkOccupy: 0.80,
