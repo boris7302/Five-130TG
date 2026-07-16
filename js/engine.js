@@ -880,6 +880,7 @@
         y: y,
         isCenter: !!(flags && flags.isCenter),
         isSpinner: !!(flags && flags.isSpinner),
+        isOpeningOrdinary: !!(flags && flags.isOpeningOrdinary),
         bent: !!(flags && flags.bent),
       });
     }
@@ -887,9 +888,11 @@
     const cTile = ensureTile(board.center.tile);
     const cHoriz = orientMain(cTile);
     const cSz = sz(cHoriz);
+    const openingOrd = !tileIsDouble(cTile);
     pushTile(cTile, board.center.player, 0, 0, cHoriz, {
       isCenter: true,
       isSpinner: board.hasSpinner && board.spinnerAtCenter,
+      isOpeningOrdinary: openingOrd,
     }, cTile.lo, cTile.hi);
 
     let prevHalf = cSz.w / 2;
