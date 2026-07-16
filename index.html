@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Пятак-130 v0.001 (rev.#027)</title>
+  <title>Пятак-130 v0.001 (rev.#028)</title>
   <style>
     :root {
       --bg: #1b4d3e;
@@ -12,12 +12,19 @@
       --muted: rgba(245, 240, 230, 0.75);
       --accent: #c9a227;
       --arrow: #ff3b5c;
+      --arrow-up: #3b82f6;
+      --arrow-down: #ff3b5c;
+      --arrow-left: #a855f7;
+      --arrow-right: #eab308;
       --warn: #ffd24a;
+      --matchup: #ffd24a;
       --tile-face: #f5f0e6;
       --tile-ai: #e8eef5;
       --pip-human: #8b6914;
       --pip-ai: #3a5a8c;
       --font-ui: "Segoe UI", system-ui, -apple-system, sans-serif;
+      --font-clock: "Segoe UI", ui-monospace, "Cascadia Mono", "Roboto Mono", monospace;
+      --clock-size: 1.35rem;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -35,13 +42,49 @@
       overscroll-behavior-y: contain;
     }
     header {
-      padding: 10px 12px 6px;
-      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 8px 10px 6px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 6px 10px;
     }
-    header h1 { margin: 0; font-size: 1.15rem; font-weight: 800; }
-    .ver { font-size: 0.7rem; font-weight: 600; opacity: 0.7; margin-left: 6px; }
+    .hdr-left {
+      display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
+    }
+    header h1 { margin: 0; font-size: 1.05rem; font-weight: 800; line-height: 1.15; }
+    .ver { font-size: 0.65rem; font-weight: 600; opacity: 0.7; margin-left: 4px; }
+    #matchup {
+      color: var(--matchup);
+      font-weight: 800;
+      font-size: 0.92rem;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      text-shadow: 0 0 8px rgba(255, 210, 74, 0.35);
+    }
+    .hdr-center {
+      display: flex; align-items: baseline; justify-content: center; gap: 8px;
+      white-space: nowrap;
+    }
+    #clock {
+      font-family: var(--font-clock);
+      font-size: var(--clock-size);
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      line-height: 1;
+      text-shadow: 0 1px 0 rgba(0,0,0,.35);
+    }
+    #weekday {
+      font-size: 0.95rem;
+      font-weight: 800;
+      text-transform: lowercase;
+      color: var(--accent);
+      min-width: 1.6em;
+    }
     #score-wrap {
-      display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap;
+      display: flex; align-items: center; justify-content: flex-end;
+      gap: 10px; font-weight: 700; white-space: nowrap;
     }
     .stones { display: flex; align-items: baseline; gap: 8px; font-size: 0.95rem; }
     .stones .lbl { color: var(--muted); font-size: 0.7rem; font-weight: 600; }
@@ -125,10 +168,19 @@
     }
     .move-btn:active { transform: scale(0.97); }
     .move-btn .arrows {
-      display: flex; gap: 4px; font-size: 1.05rem; font-weight: 900;
-      color: var(--arrow); line-height: 1; text-shadow: 0 0 6px rgba(255,59,92,.45);
-      letter-spacing: 1px;
+      display: flex; gap: 5px; font-size: 1.2rem; font-weight: 900;
+      line-height: 1; letter-spacing: 1px;
     }
+    .move-btn .arrows .arr {
+      font-weight: 900;
+      -webkit-text-stroke: 0.6px rgba(0,0,0,.25);
+      filter: drop-shadow(0 0 3px currentColor);
+    }
+    .move-btn .arrows .arr-up { color: var(--arrow-up); text-shadow: 0 0 8px rgba(59,130,246,.55); }
+    .move-btn .arrows .arr-down { color: var(--arrow-down); text-shadow: 0 0 8px rgba(255,59,92,.55); }
+    .move-btn .arrows .arr-left { color: var(--arrow-left); text-shadow: 0 0 8px rgba(168,85,247,.55); }
+    .move-btn .arrows .arr-right { color: var(--arrow-right); text-shadow: 0 0 8px rgba(234,179,8,.55); }
+    .move-btn .arrows .arr-first { color: var(--accent); }
     .move-btn .combo {
       display: flex; gap: 4px; align-items: flex-end;
     }
@@ -248,7 +300,14 @@
 </head>
 <body>
   <header>
-    <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#027)</span></h1>
+    <div class="hdr-left">
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#028)</span></h1>
+      <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
+    </div>
+    <div class="hdr-center" title="Дата и время">
+      <div id="clock">--/--/-- --:--:--</div>
+      <div id="weekday">--</div>
+    </div>
     <div id="score-wrap">
       <div class="stones" id="stones" title="Камни в руке">
         <span><span class="lbl">Вы</span> <span class="n" id="stones-you">7</span></span>
@@ -419,11 +478,27 @@
       }
 
       function arrowForEnd(end) {
-        if (end === E.EndId.MainLeft) return '←';
-        if (end === E.EndId.MainRight) return '→';
-        if (end === E.EndId.BranchUp) return '↑';
-        if (end === E.EndId.BranchDown) return '↓';
-        return '•';
+        if (end === E.EndId.MainLeft) return { ch: '←', cls: 'arr-left' };
+        if (end === E.EndId.MainRight) return { ch: '→', cls: 'arr-right' };
+        if (end === E.EndId.BranchUp) return { ch: '↑', cls: 'arr-up' };
+        if (end === E.EndId.BranchDown) return { ch: '↓', cls: 'arr-down' };
+        return { ch: '•', cls: 'arr-first' };
+      }
+      function appendArrowEls(container, endsOrFirst) {
+        if (endsOrFirst === 'first') {
+          var star = document.createElement('span');
+          star.className = 'arr arr-first';
+          star.textContent = '★';
+          container.appendChild(star);
+          return;
+        }
+        endsOrFirst.forEach(function (end) {
+          var info = arrowForEnd(end);
+          var s = document.createElement('span');
+          s.className = 'arr ' + info.cls;
+          s.textContent = info.ch;
+          container.appendChild(s);
+        });
       }
 
       function refreshLog() {
@@ -472,12 +547,12 @@
         var x = cx - w / 2, y = cy - h / 2, r = Math.max(6, cell * 0.12);
         ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
         // §7: спиннер (закрытый дубль) > первый ординар > обычная рамка.
-        var spinnerCol = cfgBoard.spinnerBorder || '#e53935';
+        var spinnerCol = cfgBoard.spinnerBorder || '#ff1744';
         var openingCol = cfgBoard.openingBorder || '#ffd24a';
         var centerCol = cfgBoard.centerBorder || '#d4a017';
         if (tile.isSpinner) {
           ctx.strokeStyle = spinnerCol;
-          ctx.lineWidth = Math.max(4, cell * 0.12);
+          ctx.lineWidth = Math.max(5.5, cell * 0.16);
         } else if (tile.isOpeningOrdinary) {
           ctx.strokeStyle = openingCol;
           ctx.lineWidth = Math.max(3.5, cell * 0.1);
@@ -501,10 +576,18 @@
         if (tile.isSpinner || tile.isOpeningOrdinary) {
           ctx.save();
           ctx.strokeStyle = tile.isSpinner ? spinnerCol : openingCol;
-          ctx.globalAlpha = 0.45;
-          ctx.lineWidth = Math.max(6, cell * 0.18);
+          ctx.globalAlpha = tile.isSpinner ? 0.7 : 0.45;
+          ctx.lineWidth = Math.max(tile.isSpinner ? 9 : 6, cell * (tile.isSpinner ? 0.28 : 0.18));
           ctx.stroke();
           ctx.restore();
+          if (tile.isSpinner) {
+            ctx.save();
+            ctx.strokeStyle = '#ff8a80';
+            ctx.globalAlpha = 0.85;
+            ctx.lineWidth = Math.max(2.5, cell * 0.07);
+            ctx.stroke();
+            ctx.restore();
+          }
         }
         ctx.beginPath();
         if (tile.horiz) { ctx.moveTo(cx, y + 6); ctx.lineTo(cx, y + h - 6); }
@@ -696,9 +779,9 @@
         var arrows = document.createElement('div');
         arrows.className = 'arrows';
         if (mv.isFirst) {
-          arrows.textContent = '★';
+          appendArrowEls(arrows, 'first');
         } else {
-          arrows.textContent = steps.map(function (s) { return arrowForEnd(s.end); }).join(' ');
+          appendArrowEls(arrows, steps.map(function (s) { return s.end; }));
         }
         var combo = document.createElement('div');
         combo.className = 'combo';
@@ -1000,10 +1083,47 @@
         handW: 34,
         handH: 68,
         layoutProfile: 'A',
-        spinnerBorder: '#e53935',
+        spinnerBorder: '#ff1744',
         centerBorder: '#d4a017',
-        openingBorder: '#ffd24a'
+        openingBorder: '#ffd24a',
+        clockEnabled: true,
+        playerName0: 'Вы',
+        playerName1: 'Компьютер',
+        matchupColor: '#ffd24a'
       };
+
+      var WEEKDAYS_RU = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+      function pad2(n) { return (n < 10 ? '0' : '') + n; }
+      function formatClockNow() {
+        var d = new Date();
+        var yy = String(d.getFullYear()).slice(-2);
+        return yy + '/' + pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()) + ' ' +
+          pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+      }
+      function updateClock() {
+        var clockEl = document.getElementById('clock');
+        var dayEl = document.getElementById('weekday');
+        if (!clockEl || !dayEl) return;
+        if (cfgBoard.clockEnabled === false) {
+          clockEl.style.display = 'none';
+          dayEl.style.display = 'none';
+          return;
+        }
+        clockEl.style.display = '';
+        dayEl.style.display = '';
+        clockEl.textContent = formatClockNow();
+        dayEl.textContent = WEEKDAYS_RU[new Date().getDay()];
+      }
+      function updateMatchup() {
+        var el = document.getElementById('matchup');
+        if (!el) return;
+        var a = cfgBoard.playerName0 || 'Вы';
+        var b = cfgBoard.playerName1 || 'Компьютер';
+        el.textContent = a + ' vs ' + b;
+      }
+      setInterval(updateClock, 1000);
+      updateClock();
+
       var cfgMap = null;
       var profilePick = 'A';
       var PROFILE_INFO = {
@@ -1067,6 +1187,17 @@
         if (map['color.spinner.border']) cfgBoard.spinnerBorder = map['color.spinner.border'];
         if (map['color.center.border']) cfgBoard.centerBorder = map['color.center.border'];
         if (map['color.opening.border']) cfgBoard.openingBorder = map['color.opening.border'];
+        if (map['color.matchup']) { cfgBoard.matchupColor = map['color.matchup']; root.setProperty('--matchup', map['color.matchup']); }
+        if (map['color.arrow.up']) root.setProperty('--arrow-up', map['color.arrow.up']);
+        if (map['color.arrow.down']) root.setProperty('--arrow-down', map['color.arrow.down']);
+        if (map['color.arrow.left']) root.setProperty('--arrow-left', map['color.arrow.left']);
+        if (map['color.arrow.right']) root.setProperty('--arrow-right', map['color.arrow.right']);
+        if (map['ui.clock.font_size']) root.setProperty('--clock-size', map['ui.clock.font_size']);
+        if (map['ui.clock.enabled']) cfgBoard.clockEnabled = map['ui.clock.enabled'] !== '0';
+        if (map['player.name.0']) cfgBoard.playerName0 = map['player.name.0'];
+        if (map['player.name.1']) cfgBoard.playerName1 = map['player.name.1'];
+        updateMatchup();
+        updateClock();
         if (map['ui.stones.low_threshold']) cfgBoard.stonesLow = parseInt(map['ui.stones.low_threshold'], 10) || cfgBoard.stonesLow;
         if (map['ui.hand.tile_w_px']) cfgBoard.handW = parseInt(map['ui.hand.tile_w_px'], 10) || cfgBoard.handW;
         if (map['ui.hand.tile_h_px']) cfgBoard.handH = parseInt(map['ui.hand.tile_h_px'], 10) || cfgBoard.handH;
