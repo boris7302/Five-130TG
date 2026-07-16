@@ -176,6 +176,34 @@
     #profile-modal .profile-opt .tag {
       flex: 0 0 28px; font-weight: 900; font-size: 1.1rem; color: var(--accent);
     }
+
+    #bazaar-warn {
+      display: none;
+      margin: 0 12px 6px;
+      padding: 10px 12px;
+      text-align: center;
+      font-size: 1.05rem;
+      font-weight: 900;
+      letter-spacing: 0.04em;
+      color: #1a1408;
+      background: var(--warn, #ffd24a);
+      border: 2px solid #ff3b5c;
+      border-radius: 10px;
+      text-shadow: none;
+      animation: bazaarPulse 1.1s ease-in-out infinite;
+    }
+    #bazaar-warn.show { display: block; }
+    @keyframes bazaarPulse {
+      0%, 100% { filter: brightness(1); transform: scale(1); }
+      50% { filter: brightness(1.12); transform: scale(1.01); }
+    }
+    #bazaar.need-bazaar {
+      background: var(--warn, #ffd24a) !important;
+      color: #1a1408 !important;
+      border-color: #ff3b5c !important;
+      font-weight: 900;
+      box-shadow: 0 0 12px rgba(255, 210, 74, 0.55);
+    }
     #modal-save {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.4);
@@ -195,6 +223,7 @@
   </header>
   <button type="button" id="profile-fab" title="Профиль раскладки">Профиль<span class="pid" id="profile-fab-id">A</span></button>
   <div id="status">Загрузка…</div>
+  <div id="bazaar-warn" role="status" aria-live="polite">НЕТ ХОДА — ИДИТЕ НА БАЗАР</div>
   <div id="board-wrap"><canvas id="board"></canvas></div>
 
   <div id="play-area">
@@ -716,10 +745,35 @@
         else refreshUi();
       }
 
+      function updateBazaarWarn() {
+        var el = document.getElementById('bazaar-warn');
+        var btn = document.getElementById('bazaar');
+        var show = false;
+        var r = round();
+        var m = match();
+        if (r && m && !m.matchOver && !r.roundOver && !pendingSettle &&
+            r.currentPlayer === E.HUMAN) {
+          var moves = E.legalMoves(r);
+          if (!moves.length) {
+            show = true;
+            el.textContent = r.market.length
+              ? 'НЕТ ХОДА — ИДИТЕ НА БАЗАР'
+              : 'НЕТ ХОДА — БАЗАР ПУСТ';
+          }
+        }
+        if (show) el.classList.add('show');
+        else el.classList.remove('show');
+        if (btn) {
+          if (show && r && r.market.length) btn.classList.add('need-bazaar');
+          else btn.classList.remove('need-bazaar');
+        }
+      }
+
       function refreshUi() {
         updateStatus();
         renderHand();
         renderMoves();
+        updateBazaarWarn();
         refreshLog();
         paint();
       }
