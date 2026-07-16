@@ -44,4 +44,4 @@ app.rev=039
 036  b35ba86  Help: move fab between Якорь/Профиль; add bottom Помощь button.
 037  bd8af1e  Help: paginated rules/usage; equal side-tab spacing; mobile-friendly.
 038  1ad8c86  Mobile cache bust: ?appver= + unregister SW; fix stale Help on phone.
-039  (pending) Footer copyright: Boris Bulatov (Boris Games), 2026 + version/rev.
+039  c43f89c  Footer copyright: Boris Bulatov (Boris Games), 2026 + version/rev.
