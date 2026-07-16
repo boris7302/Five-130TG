@@ -151,18 +151,31 @@
     #debug-close, #profile-cancel { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
 
     #profile-fab {
-      position: fixed; right: 8px; top: 48%;
+      position: fixed; right: 0; top: 48%;
       z-index: 40; transform: translateY(-50%);
-      width: 44px; min-height: 72px; padding: 8px 4px;
+      width: 52px; min-height: 110px; padding: 10px 6px;
       border-radius: 12px 0 0 12px;
       border: 1px solid rgba(245,240,230,.4);
       border-right: none;
       background: rgba(30, 63, 52, 0.95);
-      color: var(--text); font-weight: 800; font-size: 0.75rem;
-      line-height: 1.15; cursor: pointer;
+      color: var(--text); font-weight: 800; font-size: 0.72rem;
+      line-height: 1.1; cursor: pointer;
       box-shadow: -2px 2px 10px rgba(0,0,0,.35);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 6px;
     }
-    #profile-fab .pid { display: block; font-size: 1.15rem; color: var(--accent); }
+    #profile-fab .pf-lab {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      transform: rotate(180deg);
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+    #profile-fab .pid {
+      display: block; font-size: 1.25rem; color: var(--accent); font-weight: 900;
+    }
     #profile-modal .profile-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
     #profile-modal .profile-opt {
       display: flex; gap: 10px; align-items: flex-start;
@@ -204,6 +217,10 @@
       font-weight: 900;
       box-shadow: 0 0 12px rgba(255, 210, 74, 0.55);
     }
+    #bazaar.market-empty {
+      opacity: 0.85;
+      font-size: 0.82rem;
+    }
     #modal-save {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.4);
@@ -221,7 +238,7 @@
       <div id="score">0 : 0</div>
     </div>
   </header>
-  <button type="button" id="profile-fab" title="Профиль раскладки">Профиль<span class="pid" id="profile-fab-id">A</span></button>
+  <button type="button" id="profile-fab" title="Профиль раскладки"><span class="pf-lab">Профиль</span><span class="pid" id="profile-fab-id">A</span></button>
   <div id="status">Загрузка…</div>
   <div id="bazaar-warn" role="status" aria-live="polite">НЕТ ХОДА — ИДИТЕ НА БАЗАР</div>
   <div id="board-wrap"><canvas id="board"></canvas></div>
@@ -672,8 +689,14 @@
         var m = match();
         var r = round();
         if (!m || !r) return;
-        modalTitle.textContent = m.matchOver ? 'Итоги партии' : 'Итоги игры';
+        modalTitle.textContent = m.matchOver
+          ? 'Итоги партии'
+          : (r.endReason === 'fish' ? 'Итоги игры — рыба' : 'Итоги игры');
         var lines = [];
+        if (r.endReason === 'fish') {
+          lines.push('<div style="color:#ffd24a;font-weight:900;margin-bottom:8px">' +
+            'РЫБА! — некому и некуда ходить (рынок пуст)</div>');
+        }
         lines.push('<div>Списание за игру: <strong>Вы ' + delta.player0 +
           '</strong> · <strong>ПК ' + delta.player1 + '</strong></div>');
         lines.push('<div>Ходы: Вы ' + delta.moveScore[0] + ', ПК ' + delta.moveScore[1] +
@@ -745,20 +768,47 @@
         else refreshUi();
       }
 
+      function updateMarketButton() {
+        var btn = document.getElementById('bazaar');
+        if (!btn) return;
+        var r = round();
+        if (!r) {
+          btn.textContent = 'Базар';
+          return;
+        }
+        var n = r.market.length;
+        btn.textContent = n > 0 ? ('Базар (' + n + ')') : 'рынок пуст';
+        if (n > 0) btn.classList.remove('market-empty');
+        else btn.classList.add('market-empty');
+      }
+
       function updateBazaarWarn() {
         var el = document.getElementById('bazaar-warn');
         var btn = document.getElementById('bazaar');
         var show = false;
         var r = round();
         var m = match();
+        updateMarketButton();
+
+        // Яркое сообщение о рыбе (как «идите на базар»), rules_125 §7.
+        if (pendingSettle && r && r.endReason === 'fish') {
+          el.textContent = 'РЫБА! — НЕКОМУ И НЕКУДА ХОДИТЬ';
+          el.classList.add('show');
+          if (btn) btn.classList.remove('need-bazaar');
+          return;
+        }
+
         if (r && m && !m.matchOver && !r.roundOver && !pendingSettle &&
             r.currentPlayer === E.HUMAN) {
           var moves = E.legalMoves(r);
           if (!moves.length) {
             show = true;
-            el.textContent = r.market.length
-              ? 'НЕТ ХОДА — ИДИТЕ НА БАЗАР'
-              : 'НЕТ ХОДА — БАЗАР ПУСТ';
+            if (r.market.length) {
+              el.textContent = 'НЕТ ХОДА — ИДИТЕ НА БАЗАР';
+            } else {
+              // Рынок пуст, хода нет — возможен пропуск / рыба (§7).
+              el.textContent = 'НЕТ ХОДА — РЫНОК ПУСТ';
+            }
           }
         }
         if (show) el.classList.add('show');
