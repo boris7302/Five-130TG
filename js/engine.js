@@ -747,7 +747,7 @@
    * @param {object} [opts]
    * @param {number} [opts.maxVertUp] Макс. длина вертикали вверх (клетки) до загиба.
    * @param {number} [opts.maxVertDown] Макс. длина вертикали вниз до загиба.
-   * @param {boolean} [opts.bendVerticalLeft=true] Загиб веток налево.
+   * @param {boolean} [opts.bendVerticalCCW=true] Загиб ↺: up→влево, down→вправо (без 2-го загиба).
    * @param {object} [opts.meta] Выход: bendUp/bendDown индексы (−1 = нет).
    * @return {object[]} placed tiles
    */
@@ -763,7 +763,8 @@
       return horiz ? { w: 1.72, h: 0.88 } : { w: 0.88, h: 1.72 };
     }
     const GAP = 0.14;
-    const bendLeft = opts.bendVerticalLeft !== false;
+    const HALF_BODY = 0.22; // tile_w/4 ≈ полкорпуса (§5.4/§5.5)
+    const bendCCW = opts.bendVerticalCCW !== false && opts.bendVerticalLeft !== false;
     const maxUp = opts.maxVertUp != null ? opts.maxVertUp : 1e9;
     const maxDown = opts.maxVertDown != null ? opts.maxVertDown : 1e9;
 
@@ -853,58 +854,103 @@
      * @param {number} maxStraight
      * @param {string} metaKey 'bendUp'|'bendDown'
      */
+    /**
+     * Ветка вверх/вниз.
+     * Вертикаль: дубль горизонтально, ординар вертикально (§2.1).
+     * Первый загиб ↺ только: up→влево, down→вправо (§3.0/§4.3–§4.4).
+     * Без повторных загибов. Turn — к боковой половине open-pip (§5.4/§5.5).
+     * После гориз. дубля на вертикали ординар продолжает ось (§4.2) либо
+     * при загибе идёт сбоку на том же Y (§BEND_REQUIREMENTS).
+     */
     function layoutBranch(tiles, goingUp, maxStraight, metaKey) {
+      // +1 = вправо (down), −1 = влево (up)
+      const sideSign = goingUp ? -1 : 1;
       let mode = 'vert';
       let prevHalfV = spinnerHalfH;
       let cursorY = sy;
       let cursorX = sx;
       let prevOpenLocal = spinnerPipVal;
-      let prevHalfW = 0;
+      let prevW = cSz.w;
+      let prevH = cSz.h;
+      let prevHoriz = cHoriz;
+      let sideHalf = 0;
 
       for (let i = 0; i < tiles.length; i++) {
         const p = tiles[i];
 
         if (mode === 'vert') {
-          const h = orientBranch(p.tile);
-          const s = sz(h);
+          // На вертикальной оси: дубль всегда горизонтальный.
+          const horiz = !!p.tile.isDouble;
+          const s = sz(horiz);
           const nextY = goingUp
             ? cursorY - prevHalfV - GAP - s.h / 2
             : cursorY + prevHalfV + GAP + s.h / 2;
           const extent = Math.abs(nextY - sy) + s.h / 2;
-          if (bendLeft && extent > maxStraight && i > 0) {
-            mode = 'left';
+
+          if (bendCCW && extent > maxStraight && i > 0) {
+            mode = 'side';
             meta[metaKey] = i;
-            // Горизонтальный ряд на уровне центра последнего верт. камня.
+            // Стык Turn к боковой половине open-pip предшественника (§5.4/§5.5).
+            if (prevHoriz) {
+              // Предшественник — гориз. дубль: хвост сбоку на том же Y.
+              cursorY = cursorY;
+              sideHalf = prevW / 2;
+            } else {
+              // Вертикальный ординар: open-половина снаружи; Turn на её уровне.
+              const openHalfCY = goingUp
+                ? (cursorY - prevH / 4)
+                : (cursorY + prevH / 4);
+              cursorY = goingUp
+                ? (openHalfCY - HALF_BODY)
+                : (openHalfCY + HALF_BODY);
+              sideHalf = prevW / 2;
+            }
             cursorX = sx;
-            prevHalfW = sz(orientBranch(tiles[i - 1].tile)).w / 2;
-            // fall through — этот камень уже «загиб»
+            // fall through — текущий камень уже боковой
           } else {
             cursorY = nextY;
             const inward = prevOpenLocal;
             const outward = otherPip(p.tile, inward);
-            if (!h) {
-              if (goingUp) pushTile(p.tile, p.player, sx, cursorY, h, {}, outward, inward);
-              else pushTile(p.tile, p.player, sx, cursorY, h, {}, inward, outward);
+            if (!horiz) {
+              // вертикальный ординар: a=top, b=bottom
+              if (goingUp) pushTile(p.tile, p.player, sx, cursorY, false, {}, outward, inward);
+              else pushTile(p.tile, p.player, sx, cursorY, false, {}, inward, outward);
             } else {
-              pushTile(p.tile, p.player, sx, cursorY, h, {}, inward, outward);
+              // гориз. дубль на вертикальной оси: a=left, b=right (оба lo)
+              pushTile(p.tile, p.player, sx, cursorY, true, {}, p.tile.lo, p.tile.hi);
             }
             prevOpenLocal = outward;
             prevHalfV = s.h / 2;
+            prevW = s.w;
+            prevH = s.h;
+            prevHoriz = horiz;
             continue;
           }
         }
 
-        // mode === 'left' (ось как mainLeft: дубль вертикально)
-        const h = orientMain(p.tile);
-        const s = sz(h);
-        cursorX = cursorX - prevHalfW - GAP - s.w / 2;
+        // mode === 'side': горизонтальный хвост (один загиб, без второго).
+        // Ось горизонтальная §2.2: ординар горизонтально, дубль вертикально.
+        const horiz = !p.tile.isDouble;
+        const s = sz(horiz);
+        cursorX = cursorX + sideSign * (sideHalf + GAP + s.w / 2);
         const inward = prevOpenLocal;
         const outward = otherPip(p.tile, inward);
-        // горизонталь влево: слева outward, справа inward
-        if (h) pushTile(p.tile, p.player, cursorX, cursorY, h, { bent: true }, outward, inward);
-        else pushTile(p.tile, p.player, cursorX, cursorY, h, { bent: true }, outward, inward);
+        if (horiz) {
+          // ординар влево: left=outward,right=inward; вправо: left=inward,right=outward
+          if (sideSign < 0) {
+            pushTile(p.tile, p.player, cursorX, cursorY, true, { bent: true }, outward, inward);
+          } else {
+            pushTile(p.tile, p.player, cursorX, cursorY, true, { bent: true }, inward, outward);
+          }
+        } else {
+          // вертикальный дубль на гориз. хвосте
+          pushTile(p.tile, p.player, cursorX, cursorY, false, { bent: true }, p.tile.lo, p.tile.hi);
+        }
         prevOpenLocal = outward;
-        prevHalfW = s.w / 2;
+        sideHalf = s.w / 2;
+        prevW = s.w;
+        prevH = s.h;
+        prevHoriz = horiz;
       }
     }
 

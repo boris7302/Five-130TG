@@ -441,7 +441,7 @@
           var bendOcc = cfgBoard.bendOccupy != null ? cfgBoard.bendOccupy : 0.70;
           var maxVert = (availH0 * bendOcc) / Math.max(1e-6, cellPref0);
           placed = E.boardSnapshot(r.board, {
-            bendVerticalLeft: true,
+            bendVerticalCCW: true,
             maxVertUp: maxVert,
             maxVertDown: maxVert,
             meta: layoutMeta,
