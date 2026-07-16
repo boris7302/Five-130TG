@@ -6,12 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.001 (rev.#039)</title>
+  <title>Пятак-130 v0.001 (rev.#040)</title>
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '039';
+      var APP_HTML_REV = '040';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -111,19 +111,59 @@
       min-width: 1.6em;
     }
     #score-wrap {
-      display: flex; align-items: center; justify-content: flex-end;
-      gap: 10px; font-weight: 700; white-space: nowrap;
+      display: flex; align-items: flex-end; justify-content: flex-end;
+      gap: 20px; white-space: nowrap;
     }
-    .stones { display: flex; align-items: baseline; gap: 8px; font-size: 0.95rem; }
-    .stones .lbl { color: var(--muted); font-size: 0.7rem; font-weight: 600; }
-    .stones .n { font-variant-numeric: tabular-nums; }
-    .stones .n.low {
+    .stat {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+    }
+    .stat-label {
+      font-size: 0.62rem; font-weight: 600; color: var(--muted);
+      text-transform: lowercase; letter-spacing: 0.03em; line-height: 1;
+    }
+    .stat-value {
+      font-size: 1.22rem; font-weight: 800;
+      font-variant-numeric: tabular-nums; line-height: 1.1;
+    }
+    .stat-value.score { color: var(--warn); }
+    .stat-stones .stones-line {
+      display: flex; align-items: baseline; gap: 10px;
+    }
+    .stat-stones .stones-player {
+      color: var(--muted); font-size: 0.65rem; font-weight: 600;
+    }
+    .stat-stones .n { font-variant-numeric: tabular-nums; }
+    .stat-stones .n.low {
       color: var(--warn);
       font-size: 1.45rem;
       text-shadow: 0 0 8px rgba(255, 210, 74, 0.55);
       font-weight: 900;
     }
-    #score { font-size: 1.05rem; }
+    @media (max-width: 520px) {
+      header {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto auto;
+        gap: 4px 8px;
+        padding: 6px 8px 4px;
+      }
+      .hdr-left { grid-column: 1; grid-row: 1; min-width: 0; }
+      #score-wrap {
+        grid-column: 2; grid-row: 1 / span 2;
+        align-self: start; gap: 10px;
+      }
+      .hdr-center {
+        grid-column: 1 / -1; grid-row: 3;
+        justify-content: center;
+        padding-top: 2px;
+      }
+      header h1 { font-size: 0.95rem; }
+      .ver { display: block; margin-left: 0; font-size: 0.58rem; line-height: 1.2; }
+      #matchup { font-size: 0.82rem; }
+      :root { --clock-size: 1.05rem; }
+      #weekday { font-size: 0.82rem; }
+      .stat-value { font-size: 1.02rem; }
+      .stat-stones .n.low { font-size: 1.2rem; }
+    }
     #status { padding: 0 12px 6px; color: var(--muted); font-size: 0.82rem; min-height: 1.1em; }
     #board-wrap {
       flex: 1 1 auto; margin: 0 10px; border-radius: 14px;
@@ -432,7 +472,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#039)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#040)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -440,11 +480,17 @@
       <div id="weekday">--</div>
     </div>
     <div id="score-wrap">
-      <div class="stones" id="stones" title="Камни в руке">
-        <span><span class="lbl">Вы</span> <span class="n" id="stones-you">7</span></span>
-        <span><span class="lbl">ПК</span> <span class="n" id="stones-ai">7</span></span>
+      <div class="stat stat-score" title="Счёт партии">
+        <span class="stat-label">очки</span>
+        <span class="stat-value score" id="score">0 : 0</span>
       </div>
-      <div id="score">0 : 0</div>
+      <div class="stat stat-stones" id="stones" title="Камни в руке">
+        <span class="stat-label">камни</span>
+        <span class="stat-value stones-line">
+          <span><span class="stones-player">Вы</span> <span class="n" id="stones-you">7</span></span>
+          <span><span class="stones-player">ПК</span> <span class="n" id="stones-ai">7</span></span>
+        </span>
+      </div>
     </div>
   </header>
   <button type="button" id="help-fab" title="Помощь"><span class="pf-lab">Помощь</span><span class="pid" id="help-fab-id">?</span></button>
@@ -570,9 +616,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=039"></script>
-  <script src="js/match_store.js?v=039"></script>
-  <script src="js/engine.js?v=039"></script>
+  <script src="js/kv_parse.js?v=040"></script>
+  <script src="js/match_store.js?v=040"></script>
+  <script src="js/engine.js?v=040"></script>
   <script>
     (function () {
       try {
@@ -591,7 +637,7 @@
 
       var APP_VER = (E.appVersionLabel && E.appVersionLabel()) || ('v' + (E.APP_VERSION || '0.001'));
       var APP_VER_NUM = E.APP_VERSION || '0.001';
-      var APP_REV_NUM = (E.APP_REV != null ? String(E.APP_REV) : '39').padStart(3, '0');
+      var APP_REV_NUM = (E.APP_REV != null ? String(E.APP_REV) : '40').padStart(3, '0');
       document.getElementById('app-ver').textContent = APP_VER;
       document.title = 'Пятак-130 ' + APP_VER;
       document.getElementById('footer-copy').textContent =

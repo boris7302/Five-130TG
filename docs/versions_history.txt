@@ -4,7 +4,7 @@
 # Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
 
 app.version=0.001
-app.rev=039
+app.rev=040
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -45,3 +45,4 @@ app.rev=039
 037  bd8af1e  Help: paginated rules/usage; equal side-tab spacing; mobile-friendly.
 038  1ad8c86  Mobile cache bust: ?appver= + unregister SW; fix stale Help on phone.
 039  c43f89c  Footer copyright: Boris Bulatov (Boris Games), 2026 + version/rev.
+040  (pending)  Header: mobile clock row; desktop score/stones labels (очки/камни).
