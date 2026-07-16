@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Пятак-130</title>
-  <!-- Без внешних скриптов в head: в WebView Telegram они часто блокируют отрисовку. -->
   <style>
     :root {
       --bg: #1b4d3e;
@@ -21,70 +20,73 @@
     body { display: flex; flex-direction: column; min-height: 100%; }
     header {
       padding: 12px 16px 8px;
-      display: flex; justify-content: space-between; align-items: center;
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
-    header h1 { margin: 0; font-size: 1.25rem; font-weight: 800; }
-    #score { font-weight: 700; }
-    #status { padding: 0 16px 8px; color: var(--muted); font-size: 0.9rem; }
+    header h1 { margin: 0; font-size: 1.2rem; font-weight: 800; }
+    #score { font-weight: 700; white-space: nowrap; }
+    #status { padding: 0 16px 8px; color: var(--muted); font-size: 0.9rem; min-height: 1.2em; }
     #board-wrap {
       flex: 1; margin: 0 12px; border-radius: 16px; overflow: hidden;
-      border: 1px solid rgba(0,0,0,.25); background: #164536; min-height: 240px;
+      border: 1px solid rgba(0,0,0,.25); background: #164536; min-height: 220px;
     }
     canvas { width: 100%; height: 100%; display: block; }
     #hand-label { padding: 8px 16px 4px; font-size: 0.85rem; color: var(--muted); }
-    #hand {
-      display: flex; gap: 8px; overflow-x: auto; padding: 4px 12px 8px;
-    }
-    .tile-btn {
-      flex: 0 0 auto; width: 56px; height: 72px; border-radius: 10px;
+    #hand { display: flex; gap: 8px; overflow-x: auto; padding: 4px 12px 8px; }
+    .tile-btn, .move-btn {
+      flex: 0 0 auto; min-width: 56px; height: 72px; border-radius: 10px;
       border: 2px solid #8b6914; background: #f5f0e6; color: #222;
-      font-weight: 700; font-size: 15px;
+      font-weight: 700; font-size: 13px; padding: 4px 6px;
     }
-    .tile-btn.selected {
+    .tile-btn.selected, .move-btn.selected {
       border-color: var(--accent); border-width: 3px; background: #fff3c4;
     }
-    #actions { display: flex; gap: 12px; padding: 8px 16px 8px; flex-wrap: wrap; }
+    #moves-label { padding: 0 16px 4px; font-size: 0.85rem; color: var(--muted); }
+    #moves { display: flex; gap: 8px; overflow-x: auto; padding: 0 12px 8px; min-height: 40px; }
+    #actions { display: flex; gap: 10px; padding: 8px 16px; flex-wrap: wrap; }
     button.action {
-      flex: 1; min-width: 90px; padding: 14px; border-radius: 12px; border: none;
-      font-size: 1rem; font-weight: 600;
+      flex: 1; min-width: 88px; padding: 12px; border-radius: 12px; border: none;
+      font-size: 0.95rem; font-weight: 600;
     }
-    #bazaar, #save, #list {
+    #bazaar, #newgame, #save, #list {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.35);
     }
-    #move { background: var(--accent); color: #1a1408; }
-    #move:disabled { opacity: 0.45; }
-    #note {
-      padding: 0 16px 12px; font-size: 0.75rem; color: var(--muted); text-align: center;
+    #play { background: var(--accent); color: #1a1408; }
+    #play:disabled { opacity: 0.45; }
+    #store-status, #note {
+      padding: 0 16px 8px; font-size: 0.75rem; color: var(--muted); text-align: center;
     }
-    #store-status { padding: 0 16px 10px; font-size: 0.8rem; color: var(--muted); }
-    #banner {
-      background: #c9a227; color: #1a1408; text-align: center;
-      padding: 8px; font-weight: 700; font-size: 14px;
+    #log {
+      max-height: 72px; overflow: auto; margin: 0 12px 10px; padding: 8px;
+      background: rgba(0,0,0,.18); border-radius: 8px; font-size: 0.75rem;
     }
   </style>
 </head>
 <body>
-  <div id="banner">HTML Mini App · если это видно — WebView живой</div>
   <header>
     <h1>Пятак-130</h1>
-    <div id="score">40 : 25</div>
+    <div id="score">0 : 0</div>
   </header>
-  <div id="status">Демо-стол · vs бот · цель 125/130</div>
+  <div id="status">Загрузка…</div>
   <div id="board-wrap"><canvas id="board"></canvas></div>
   <div id="hand-label">Ваша рука</div>
   <div id="hand"></div>
+  <div id="moves-label">Ходы</div>
+  <div id="moves"></div>
   <div id="actions">
+    <button class="action" id="play" type="button" disabled>Ход</button>
     <button class="action" id="bazaar" type="button">Базар</button>
-    <button class="action" id="move" type="button" disabled>Ход</button>
+    <button class="action" id="newgame" type="button">Новая</button>
     <button class="action" id="save" type="button">Сохранить</button>
     <button class="action" id="list" type="button">Партии</button>
   </div>
   <div id="store-status">MatchStore: …</div>
-  <div id="note">Хранение: ключ=значение в IndexedDB (см. docs/MATCH_STORE.md). Движок — порт на Dart.</div>
+  <div id="log"></div>
+  <div id="note">Движок JS (порт C++) · хранение ключ=значение</div>
 
   <script src="js/kv_parse.js"></script>
   <script src="js/match_store.js"></script>
+  <script src="js/engine.js"></script>
   <script>
     (function () {
       try {
@@ -95,96 +97,41 @@
         }
       } catch (e) {}
 
-      var storeStatus = document.getElementById('store-status');
-      function setStoreStatus(msg) {
-        if (storeStatus) storeStatus.textContent = msg;
-      }
-      try {
-        var oid = window.Five130MatchStore ? Five130MatchStore.ownerId() : 'guest';
-        setStoreStatus('MatchStore · owner=' + oid);
-      } catch (e) {
-        setStoreStatus('MatchStore недоступен');
+      var E = window.Five130Engine;
+      if (!E) {
+        document.getElementById('status').textContent = 'Движок не загружен';
+        return;
       }
 
-      var placed = [
-        { a: 5, b: 5, x: 0, y: 0, horiz: false, human: true },
-        { a: 5, b: 3, x: -1, y: 0, horiz: true, human: false },
-        { a: 2, b: 5, x: 1, y: 0, horiz: true, human: true },
-        { a: 5, b: 1, x: 0, y: -1, horiz: false, human: false },
-        { a: 6, b: 5, x: 0, y: 1, horiz: false, human: true },
-        { a: 3, b: 0, x: -2, y: 0, horiz: true, human: false }
-      ];
-      var hand = [[4, 4], [6, 2], [1, 0], [3, 6], [2, 2]];
-      var selected = null;
-      var handEl = document.getElementById('hand');
-      var moveBtn = document.getElementById('move');
-
-      hand.forEach(function (t, i) {
-        var b = document.createElement('button');
-        b.className = 'tile-btn';
-        b.type = 'button';
-        b.textContent = t[0] + '|' + t[1];
-        b.onclick = function () {
-          selected = i;
-          Array.prototype.forEach.call(handEl.children, function (c, j) {
-            c.classList.toggle('selected', j === i);
-          });
-          moveBtn.disabled = false;
-        };
-        handEl.appendChild(b);
-      });
-
-      document.getElementById('bazaar').onclick = function () {
-        alert('Базар — позже, с движком');
-      };
-      moveBtn.onclick = function () {
-        if (selected == null) return;
-        var t = hand[selected];
-        alert('Ход [' + t[0] + '|' + t[1] + '] — stub');
-      };
-
+      var session = null;
+      var selectedMove = null;
       var scoreEl = document.getElementById('score');
-      document.getElementById('save').onclick = function () {
-        if (!window.Five130MatchStore) {
-          alert('MatchStore не загружен');
-          return;
-        }
-        var scoreTxt = (scoreEl && scoreEl.textContent || '0 : 0').replace(/\s/g, '');
-        var parts = scoreTxt.split(':');
-        var finalScore = (parts[0] || '0') + ',' + (parts[1] || '0');
-        Five130MatchStore.saveStubFromUi({
-          final_score: finalScore,
-          match_winner: '0',
-          status: 'stub-demo',
-          game_type: 'five130',
-        }).then(function (r) {
-          setStoreStatus('Сохранено · ' + r.match_id);
-          alert('Партия сохранена:\n' + r.match_id);
-        }).catch(function (err) {
-          setStoreStatus('Ошибка сохранения');
-          alert(String(err));
-        });
-      };
-      document.getElementById('list').onclick = function () {
-        if (!window.Five130MatchStore) {
-          alert('MatchStore не загружен');
-          return;
-        }
-        Five130MatchStore.listMatches().then(function (idx) {
-          if (!idx.items.length) {
-            alert('Партий пока нет (owner=' + idx.owner + ')');
-            setStoreStatus('MatchStore · owner=' + idx.owner + ' · 0 партий');
-            return;
-          }
-          var lines = idx.items.slice(0, 10).map(function (it, i) {
-            return (i + 1) + '. ' + it.id + ' · ' + it.final_score + ' · ' + it.result;
-          });
-          setStoreStatus('MatchStore · owner=' + idx.owner + ' · ' + idx.items.length + ' парт.');
-          alert('Партии (owner=' + idx.owner + '):\n' + lines.join('\n'));
-        }).catch(function (err) {
-          alert(String(err));
-        });
-      };
+      var statusEl = document.getElementById('status');
+      var handEl = document.getElementById('hand');
+      var movesEl = document.getElementById('moves');
+      var logEl = document.getElementById('log');
+      var playBtn = document.getElementById('play');
+      var storeStatus = document.getElementById('store-status');
+      var canvas = document.getElementById('board');
+      var wrap = document.getElementById('board-wrap');
+      var ctx = canvas.getContext('2d');
+
+      function setStoreStatus(msg) { storeStatus.textContent = msg; }
+      try {
+        setStoreStatus('MatchStore · owner=' + (window.Five130MatchStore
+          ? Five130MatchStore.ownerId() : 'guest'));
+      } catch (e) { setStoreStatus('MatchStore недоступен'); }
+
+      function match() { return session && session.match; }
+      function round() { return match() && match().round; }
+
+      function refreshLog() {
+        var r = round();
+        if (!r) { logEl.textContent = ''; return; }
+        logEl.textContent = r.actionLog.slice(-8).map(function (a) {
+          return (a.player === E.HUMAN ? 'Вы' : 'ПК') + ': ' + a.text;
+        }).join('\n');
+      }
 
       function pipLayout(v) {
         var c = 0.5, n = 0.28, f = 0.72, m = 0.5;
@@ -197,10 +144,6 @@
         if (v === 6) return [[n, 0.22], [f, 0.22], [n, m], [f, m], [n, 0.78], [f, 0.78]];
         return [[c, c]];
       }
-
-      var canvas = document.getElementById('board');
-      var wrap = document.getElementById('board-wrap');
-      var ctx = canvas.getContext('2d');
 
       function drawTile(cx, cy, tile, cell) {
         var w = tile.horiz ? cell * 1.65 : cell * 0.85;
@@ -243,6 +186,8 @@
       }
 
       function paint() {
+        var r = round();
+        var placed = r ? E.boardSnapshot(r.board) : [];
         var dpr = window.devicePixelRatio || 1;
         var rect = wrap.getBoundingClientRect();
         canvas.width = Math.max(1, Math.floor(rect.width * dpr));
@@ -251,16 +196,180 @@
         var W = rect.width, H = rect.height;
         ctx.fillStyle = '#164536';
         ctx.fillRect(0, 0, W, H);
-        var cell = Math.min(W, H) / 7, gap = 4, ox = W / 2, oy = H / 2;
+        var cell = Math.min(W, H) / 8, gap = 4, ox = W / 2, oy = H / 2;
         placed.forEach(function (t) {
           drawTile(ox + t.x * (cell + gap), oy + t.y * (cell + gap), t, cell);
         });
       }
 
-      paint();
+      function renderHand() {
+        handEl.innerHTML = '';
+        var r = round();
+        if (!r) return;
+        r.hands[E.HUMAN].forEach(function (t) {
+          var b = document.createElement('button');
+          b.className = 'tile-btn';
+          b.type = 'button';
+          b.textContent = t.label;
+          b.disabled = true;
+          handEl.appendChild(b);
+        });
+      }
+
+      function renderMoves() {
+        movesEl.innerHTML = '';
+        selectedMove = null;
+        playBtn.disabled = true;
+        var r = round();
+        var m = match();
+        if (!r || !m || m.matchOver || r.roundOver || r.currentPlayer !== E.HUMAN) return;
+        var moves = E.legalMoves(r);
+        moves.forEach(function (mv, i) {
+          var b = document.createElement('button');
+          b.className = 'move-btn';
+          b.type = 'button';
+          b.textContent = E.moveLabel(mv);
+          b.onclick = function () {
+            selectedMove = mv;
+            Array.prototype.forEach.call(movesEl.children, function (c, j) {
+              c.classList.toggle('selected', j === i);
+            });
+            playBtn.disabled = false;
+          };
+          movesEl.appendChild(b);
+        });
+      }
+
+      function updateStatus() {
+        var m = match();
+        var r = round();
+        if (!m || !r) return;
+        scoreEl.textContent = m.scores[0] + ' : ' + m.scores[1];
+        var bits = [];
+        if (m.matchOver) bits.push(m.statusLine || 'Партия окончена');
+        else if (r.roundOver) bits.push('Игра окончена · ' + (r.message || r.endReason || ''));
+        else bits.push(r.currentPlayer === E.HUMAN ? 'Ваш ход' : 'Ход компьютера');
+        if (r.message) bits.push(r.message);
+        if (m.statusLine && !m.matchOver) bits.push(m.statusLine);
+        statusEl.textContent = bits.join(' · ');
+      }
+
+      function afterHumanOrAi() {
+        var m = match();
+        var r = round();
+        if (!m || !r) return;
+        if (r.roundOver) {
+          var delta = E.settleRound(r);
+          E.applyRoundResult(m, r, delta);
+          statusEl.textContent = delta.summary + (m.matchOver ? (' · ' + m.statusLine) : '');
+          if (!m.matchOver) {
+            setTimeout(function () {
+              E.startRound(m, session.rng);
+              drainAi();
+              refreshUi();
+            }, 700);
+            refreshUi();
+            return;
+          }
+        }
+        refreshUi();
+        drainAi();
+      }
+
+      function drainAi() {
+        var m = match();
+        var r = round();
+        var guard = 0;
+        while (m && r && !m.matchOver && !r.roundOver && r.currentPlayer === E.AI && guard++ < 40) {
+          E.runAiTurn(m);
+          r = round();
+          if (r && r.roundOver) {
+            var delta = E.settleRound(r);
+            E.applyRoundResult(m, r, delta);
+            if (!m.matchOver) {
+              E.startRound(m, session.rng);
+              r = round();
+              continue;
+            }
+            break;
+          }
+        }
+        refreshUi();
+      }
+
+      function refreshUi() {
+        updateStatus();
+        renderHand();
+        renderMoves();
+        refreshLog();
+        paint();
+      }
+
+      function newGame() {
+        session = E.createMatch({ gameType: 'five130' });
+        selectedMove = null;
+        drainAi();
+        refreshUi();
+      }
+
+      playBtn.onclick = function () {
+        var r = round();
+        if (!r || !selectedMove || r.currentPlayer !== E.HUMAN) return;
+        if (!E.applyMove(r, selectedMove)) {
+          alert(r.message || 'Недопустимый ход');
+          refreshUi();
+          return;
+        }
+        afterHumanOrAi();
+      };
+
+      document.getElementById('bazaar').onclick = function () {
+        var r = round();
+        if (!r || r.currentPlayer !== E.HUMAN || r.roundOver) return;
+        if (E.legalMoves(r).length) {
+          alert('Есть ход — рынок не нужен');
+          return;
+        }
+        E.drawFromMarket(r);
+        afterHumanOrAi();
+      };
+
+      document.getElementById('newgame').onclick = function () {
+        if (confirm('Начать новую партию?')) newGame();
+      };
+
+      document.getElementById('save').onclick = function () {
+        if (!window.Five130MatchStore || !match()) return;
+        var m = match();
+        Five130MatchStore.saveStubFromUi({
+          final_score: m.scores[0] + ',' + m.scores[1],
+          match_winner: m.matchOver ? String(m.matchWinner) : '-1',
+          match_draw: m.matchDraw ? '1' : '0',
+          match_over: m.matchOver ? '1' : '0',
+          status: m.statusLine || 'in-progress',
+          game_type: m.gameType,
+          seed: String(m.seed),
+        }).then(function (res) {
+          setStoreStatus('Сохранено · ' + res.match_id);
+          alert('Сохранено: ' + res.match_id);
+        }).catch(function (err) { alert(String(err)); });
+      };
+
+      document.getElementById('list').onclick = function () {
+        if (!window.Five130MatchStore) return;
+        Five130MatchStore.listMatches().then(function (idx) {
+          if (!idx.items.length) {
+            alert('Партий нет (owner=' + idx.owner + ')');
+            return;
+          }
+          alert(idx.items.slice(0, 12).map(function (it, i) {
+            return (i + 1) + '. ' + it.id + ' · ' + it.final_score + ' · ' + it.result;
+          }).join('\n'));
+        });
+      };
+
       window.addEventListener('resize', paint);
-      setTimeout(paint, 100);
-      setTimeout(paint, 500);
+      newGame();
     })();
   </script>
 </body>
