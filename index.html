@@ -33,11 +33,11 @@
     #hand-label { padding: 8px 16px 4px; font-size: 0.85rem; color: var(--muted); }
     #hand { display: flex; gap: 8px; overflow-x: auto; padding: 4px 12px 8px; }
     .tile-btn, .move-btn {
-      flex: 0 0 auto; min-width: 64px; height: 78px; border-radius: 10px;
+      flex: 0 0 auto; min-width: 44px; height: 48px; border-radius: 8px;
       border: 2px solid #8b6914; background: #f5f0e6; color: #222;
-      font-weight: 800; font-size: 20px; padding: 6px 8px; letter-spacing: 0.5px;
+      font-weight: 700; font-size: 14px; padding: 4px 6px; letter-spacing: 0.3px;
     }
-    .move-btn { font-size: 16px; min-width: 88px; }
+    .move-btn { font-size: 12px; min-width: 72px; height: 44px; }
     .tile-btn.selected, .move-btn.selected {
       border-color: var(--accent); border-width: 3px; background: #fff3c4;
     }
@@ -215,7 +215,7 @@
         minX -= pad; maxX += pad; minY -= pad; maxY += pad;
         var bw = Math.max(0.01, maxX - minX);
         var bh = Math.max(0.01, maxY - minY);
-        var cell = Math.min((W * 0.92) / bw, (H * 0.92) / bh);
+        var cell = Math.min((W * 0.92) / bw, (H * 0.92) / bh) * 0.55;
         var ox = W / 2 - ((minX + maxX) / 2) * cell;
         var oy = H / 2 - ((minY + maxY) / 2) * cell;
         placed.forEach(function (t) {
