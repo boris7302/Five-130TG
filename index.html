@@ -6,12 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#045)</title>
+  <title>Пятак-130 v0.002 (rev.#047)</title>
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '045';
+      var APP_HTML_REV = '047';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -327,34 +327,34 @@
     }
 
     /* Modal */
-    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal {
+    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal, #game-mode-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
     #modal.open, #debug-modal.open, #profile-modal.open, #spinner-modal.open,
-    #help-modal.open, #help-rules-modal.open, #help-usage-modal.open { display: flex; }
+    #help-modal.open, #help-rules-modal.open, #help-usage-modal.open, #game-mode-modal.open { display: flex; }
     #modal .card, #debug-modal .card, #profile-modal .card, #spinner-modal .card,
-    #help-modal .card, #help-rules-modal .card, #help-usage-modal .card {
+    #help-modal .card, #help-rules-modal .card, #help-usage-modal .card, #game-mode-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
     #help-rules-modal .card, #help-usage-modal .card { width: min(520px, 100%); }
     #modal h2, #debug-modal h2, #profile-modal h2, #spinner-modal h2,
-    #help-modal h2, #help-rules-modal h2, #help-usage-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #help-modal h2, #help-rules-modal h2, #help-usage-modal h2, #game-mode-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
     #modal .lines, #debug-modal .lines, #profile-modal .lines, #spinner-modal .lines,
-    #help-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #help-modal .lines, #game-mode-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
     #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong, #spinner-modal .lines strong,
     #help-modal .lines strong { color: var(--text); font-weight: 700; }
     #modal .btns, #debug-modal .btns, #profile-modal .btns, #spinner-modal .btns,
-    #help-modal .btns, #help-rules-modal .btns, #help-usage-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #help-modal .btns, #help-rules-modal .btns, #help-usage-modal .btns, #game-mode-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
     #modal .btns button, #debug-modal .btns button, #profile-modal .btns button, #spinner-modal .btns button,
-    #help-modal .btns button, #help-rules-modal .btns button, #help-usage-modal .btns button {
+    #help-modal .btns button, #help-rules-modal .btns button, #help-usage-modal .btns button, #game-mode-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
-    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame, #spinner-apply, #help-rules-btn, #help-usage-btn { background: var(--accent); color: #1a1408; }
-    #debug-close, #profile-cancel, #spinner-cancel, #help-cancel, #help-rules-close, #help-usage-close { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
+    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame, #spinner-apply, #help-rules-btn, #help-usage-btn, #mode-ai-btn, #mode-pvp-btn { background: var(--accent); color: #1a1408; }
+    #debug-close, #profile-cancel, #spinner-cancel, #help-cancel, #help-rules-close, #help-usage-close, #mode-cancel { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
 
     #profile-fab, #spinner-fab, #help-fab {
       position: fixed; right: 0;
@@ -525,7 +525,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#045)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#047)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -542,11 +542,11 @@
         <span class="stat-value stones-line">
           <span class="stones-col">
             <span class="n" id="stones-you">7</span>
-            <span class="stones-player">Вы</span>
+            <span class="stones-player" id="stones-p0">Вы</span>
           </span>
           <span class="stones-col">
             <span class="n" id="stones-ai">7</span>
-            <span class="stones-player">ПК</span>
+            <span class="stones-player" id="stones-p1">ПК</span>
           </span>
         </span>
       </div>
@@ -561,7 +561,7 @@
 
   <div id="play-area">
     <div id="hand-block">
-      <div class="sec-label">Ваша рука</div>
+      <div class="sec-label" id="hand-label">Ваша рука</div>
       <div id="hand"></div>
     </div>
     <div id="moves-block">
@@ -586,6 +586,24 @@
   </div>
   <div id="store-status"></div>
   <div id="footer-copy"></div>
+
+  <div id="game-mode-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Новая партия</h2>
+      <div class="lines">Выберите режим. «Два игрока» — по очереди на одном устройстве; онлайн-соперник — позже (нужен сервер).</div>
+      <div class="profile-list">
+        <button type="button" class="profile-opt" id="mode-ai-btn">
+          <span class="tag">1</span><span>Против компьютера</span>
+        </button>
+        <button type="button" class="profile-opt" id="mode-pvp-btn">
+          <span class="tag">2</span><span>Два игрока (одно устройство)</span>
+        </button>
+      </div>
+      <div class="btns">
+        <button type="button" id="mode-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
 
   <div id="profile-modal" role="dialog" aria-modal="true">
     <div class="card">
@@ -675,9 +693,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=045"></script>
-  <script src="js/match_store.js?v=045"></script>
-  <script src="js/engine.js?v=045"></script>
+  <script src="js/kv_parse.js?v=047"></script>
+  <script src="js/match_store.js?v=047"></script>
+  <script src="js/engine.js?v=047"></script>
   <script>
     (function () {
       try {
@@ -714,16 +732,20 @@
 
       var session = null;
       var pendingSettle = null; // { delta, matchOver } — ждём модалку
+      var gameMode = E.GameMode.AI;
       var gfxDebug = [];
       var scoreEl = document.getElementById('score');
       var statusEl = document.getElementById('status');
       var handEl = document.getElementById('hand');
+      var handLabelEl = document.getElementById('hand-label');
       var movesSimpleEl = document.getElementById('moves-simple');
       var movesCompoundEl = document.getElementById('moves-compound');
       var compoundLabel = document.getElementById('compound-label');
       var logEl = document.getElementById('log');
       var stonesYou = document.getElementById('stones-you');
       var stonesAi = document.getElementById('stones-ai');
+      var stonesP0 = document.getElementById('stones-p0');
+      var stonesP1 = document.getElementById('stones-p1');
       var storeStatus = document.getElementById('store-status');
       var modal = document.getElementById('modal');
       var modalTitle = document.getElementById('modal-title');
@@ -737,6 +759,69 @@
 
       function match() { return session && session.match; }
       function round() { return match() && match().round; }
+
+      function telegramUserName() {
+        try {
+          var tw = window.Telegram && window.Telegram.WebApp;
+          var u = tw && tw.initDataUnsafe && tw.initDataUnsafe.user;
+          if (!u) return null;
+          if (u.first_name) return u.first_name;
+          if (u.username) return '@' + u.username;
+        } catch (e) {}
+        return null;
+      }
+
+      function isPvpMode() {
+        var m = match();
+        return !!(m && m.gameMode === E.GameMode.PVP);
+      }
+
+      function playerName(idx) {
+        var m = match();
+        if (m && m.playerNames && m.playerNames[idx]) return m.playerNames[idx];
+        return idx === 0 ? 'Вы' : 'Компьютер';
+      }
+
+      function shortPlayerLabel(name) {
+        if (!name) return '?';
+        return name.length > 8 ? name.slice(0, 7) + '…' : name;
+      }
+
+      function resolvePlayerNames(mode) {
+        if (mode === E.GameMode.PVP) return E.defaultPlayerNames(E.GameMode.PVP);
+        var you = telegramUserName() || cfgBoard.playerName0 || 'Вы';
+        return [you, cfgBoard.playerName1 || 'Компьютер'];
+      }
+
+      function syncPlayerLabelsToUi(names) {
+        cfgBoard.playerName0 = names[0];
+        cfgBoard.playerName1 = names[1];
+        updateMatchup();
+        if (stonesP0) stonesP0.textContent = shortPlayerLabel(names[0]);
+        if (stonesP1) stonesP1.textContent = shortPlayerLabel(names[1]);
+      }
+
+      function isInteractiveTurn() {
+        var m = match();
+        var r = round();
+        if (!m || !r || m.matchOver || r.roundOver || pendingSettle) return false;
+        if (isPvpMode()) return true;
+        return r.currentPlayer === E.HUMAN;
+      }
+
+      function activeHandPlayer() {
+        var r = round();
+        if (!r) return E.HUMAN;
+        return isPvpMode() ? r.currentPlayer : E.HUMAN;
+      }
+
+      function openGameModeModal() {
+        document.getElementById('game-mode-modal').classList.add('open');
+      }
+
+      function closeGameModeModal() {
+        document.getElementById('game-mode-modal').classList.remove('open');
+      }
 
       function pipPositions(v) {
         var c = 50, n = 28, f = 72, m = 50;
@@ -1085,7 +1170,13 @@
         handEl.innerHTML = '';
         var r = round();
         if (!r) return;
-        r.hands[E.HUMAN].forEach(function (t) {
+        var p = activeHandPlayer();
+        if (handLabelEl) {
+          handLabelEl.textContent = isPvpMode()
+            ? ('Рука: ' + playerName(p))
+            : 'Ваша рука';
+        }
+        r.hands[p].forEach(function (t) {
           handEl.appendChild(makeDominoEl(t.lo, t.hi));
         });
       }
@@ -1126,7 +1217,7 @@
         movesCompoundEl.style.display = 'none';
         var r = round();
         var m = match();
-        if (!r || !m || m.matchOver || r.roundOver || r.currentPlayer !== E.HUMAN || pendingSettle) return;
+        if (!r || !m || m.matchOver || r.roundOver || !isInteractiveTurn()) return;
         var moves = E.legalMoves(r);
         var simple = [], compound = [];
         moves.forEach(function (mv) {
@@ -1158,14 +1249,14 @@
         var r = round();
         if (!m || !r) return;
         // Счёт в шапке = накопленная партия + кратные 5 за ходы текущей игры (как Five-130 TUI).
-        scoreEl.textContent = partyScoreDisplay(E.HUMAN) + ' : ' + partyScoreDisplay(E.AI);
-        setStoneCount(stonesYou, r.hands[E.HUMAN].length);
-        setStoneCount(stonesAi, r.hands[E.AI].length);
+        scoreEl.textContent = partyScoreDisplay(0) + ' : ' + partyScoreDisplay(1);
+        setStoneCount(stonesYou, r.hands[0].length);
+        setStoneCount(stonesAi, r.hands[1].length);
         var bits = [];
         if (m.matchOver) bits.push(m.statusLine || 'Партия окончена');
         else if (pendingSettle) bits.push('Игра окончена — смотрите итоги');
         else if (r.roundOver) bits.push('Игра окончена · ' + (r.message || r.endReason || ''));
-        else bits.push(r.currentPlayer === E.HUMAN ? 'Ваш ход' : 'Ход компьютера');
+        else bits.push('Ход: ' + playerName(r.currentPlayer));
         if (r.message && !pendingSettle) bits.push(r.message);
         if (!pendingSettle && !m.matchOver) {
           bits.push('ходы ' + (r.moveScores[0] || 0) + ':' + (r.moveScores[1] || 0));
@@ -1188,10 +1279,9 @@
       function nextStarterLabel(m, r, delta) {
         if (m.matchOver) return '— (партия окончена)';
         if (r.endReason === 'fish') {
-          return (r.winner === E.HUMAN ? 'Вы' : 'Компьютер') + ' (после рыбы)';
+          return playerName(r.winner) + ' (после рыбы)';
         }
-        if (r.winner === E.HUMAN) return 'Вы';
-        if (r.winner === E.AI) return 'Компьютер';
+        if (r.winner >= 0) return playerName(r.winner);
         return 'По правилам партии';
       }
 
@@ -1206,8 +1296,8 @@
         if (m.matchOver) {
           var st0 = m.statusLine || 'Партия окончена';
           var low0 = String(st0).toLowerCase();
-          if (low0.indexOf('победа') >= 0 && low0.indexOf('компьютер') < 0) {
-            lines.push('<div class="result-headline win">Победа!</div>');
+          if (low0.indexOf('победа') >= 0) {
+            lines.push('<div class="result-headline win">' + st0 + '</div>');
           } else if (low0.indexOf('компьютер') >= 0 || low0.indexOf('проигр') >= 0) {
             lines.push('<div class="result-headline lose">' + st0 + '</div>');
           } else if (low0.indexOf('ничья') >= 0) {
@@ -1219,16 +1309,15 @@
         if (r.endReason === 'fish') {
           lines.push('<div style="color:#ffd24a;font-weight:900;margin-bottom:8px">' +
             'Игра завершилась рыбой: ходов больше нет (рынок пуст).</div>');
-          var fishWho = (r.winner === E.HUMAN) ? 'Вы' : 'Компьютер';
-          lines.push('<div>Рыбу сделал: <strong>' + fishWho +
+          lines.push('<div>Рыбу сделал: <strong>' + playerName(r.winner) +
             '</strong> — первым в следующей игре ходит этот игрок (§7.3).</div>');
         }
-        lines.push('<div>Списание за игру: <strong>Вы ' + delta.player0 +
-          '</strong> · <strong>ПК ' + delta.player1 + '</strong></div>');
-        lines.push('<div>Ходы: Вы ' + delta.moveScore[0] + ', ПК ' + delta.moveScore[1] +
-          '; остаток (§5): Вы ' + delta.leftover[0] + ', ПК ' + delta.leftover[1] +
+        lines.push('<div>Списание за игру: <strong>' + playerName(0) + ' ' + delta.player0 +
+          '</strong> · <strong>' + playerName(1) + ' ' + delta.player1 + '</strong></div>');
+        lines.push('<div>Ходы: ' + playerName(0) + ' ' + delta.moveScore[0] + ', ' + playerName(1) + ' ' + delta.moveScore[1] +
+          '; остаток (§5): ' + playerName(0) + ' ' + delta.leftover[0] + ', ' + playerName(1) + ' ' + delta.leftover[1] +
           (delta.finish[0] || delta.finish[1]
-            ? ('; финиш-штраф (§6): Вы ' + delta.finish[0] + ', ПК ' + delta.finish[1]) : '') +
+            ? ('; финиш-штраф (§6): ' + playerName(0) + ' ' + delta.finish[0] + ', ' + playerName(1) + ' ' + delta.finish[1]) : '') +
           '</div>');
         if (r.endReason === 'fish') {
           lines.push('<div style="font-size:0.82rem;opacity:0.9">Остаток при рыбе: обычное округление pip×5; ' +
@@ -1250,7 +1339,7 @@
         var m = match();
         var r = round();
         if (!m || !r || !r.roundOver || pendingSettle) return;
-        var delta = E.settleRound(r);
+        var delta = E.settleRound(r, m);
         E.applyRoundResult(m, r, delta);
         pendingSettle = { delta: delta };
         showRoundModal(delta);
@@ -1288,7 +1377,7 @@
         var r = round();
         var guard = 0;
         while (m && r && !m.matchOver && !r.roundOver && !pendingSettle &&
-               r.currentPlayer === E.AI && guard++ < 40) {
+               !isPvpMode() && r.currentPlayer === E.AI && guard++ < 40) {
           E.runAiTurn(m);
           r = round();
         }
@@ -1327,19 +1416,17 @@
         }
 
         if (r && m && !m.matchOver && !r.roundOver && !pendingSettle &&
-            r.currentPlayer === E.HUMAN) {
+            isInteractiveTurn()) {
           var moves = E.legalMoves(r);
           if (!moves.length) {
             show = true;
             if (r.market.length) {
               el.textContent = 'НЕТ ХОДА — ИДИТЕ НА БАЗАР';
             } else {
-              // Рынок пуст, хода нет — возможен пропуск / рыба (§7).
               el.textContent = 'НЕТ ХОДА — РЫНОК ПУСТ';
             }
-          } else if (r.lastBazaarDraw && r.lastBazaarDraw.player === E.AI &&
+          } else if (r.lastBazaarDraw && r.lastBazaarDraw.player !== r.currentPlayer &&
                      r.lastBazaarDraw.text) {
-            // Сообщить, что компьютер ходил на рынок (с количеством камней).
             show = true;
             el.textContent = r.lastBazaarDraw.text;
           }
@@ -1348,7 +1435,7 @@
         else el.classList.remove('show');
         if (btn) {
           if (show && r && r.market.length && E.legalMoves(r).length === 0 &&
-              r.currentPlayer === E.HUMAN) btn.classList.add('need-bazaar');
+              isInteractiveTurn()) btn.classList.add('need-bazaar');
           else btn.classList.remove('need-bazaar');
         }
       }
@@ -1364,7 +1451,7 @@
 
       function playMove(mv) {
         var r = round();
-        if (!r || r.currentPlayer !== E.HUMAN || pendingSettle) return;
+        if (!r || !isInteractiveTurn()) return;
         r.lastBazaarDraw = null;
         if (!E.applyMove(r, mv)) {
           alert(r.message || 'Недопустимый ход');
@@ -1374,12 +1461,25 @@
         afterHumanOrAi();
       }
 
-      function newGame() {
-        session = E.createMatch({ gameType: 'five130' });
+      function startNewMatch(mode) {
+        gameMode = mode || E.GameMode.AI;
+        try { localStorage.setItem('five130tg_game_mode', gameMode); } catch (e) {}
+        var names = resolvePlayerNames(gameMode);
+        syncPlayerLabelsToUi(names);
+        session = E.createMatch({
+          gameType: 'five130',
+          gameMode: gameMode,
+          playerNames: names
+        });
         pendingSettle = null;
         closeModal();
+        closeGameModeModal();
         drainAi();
         refreshUi();
+      }
+
+      function newGame() {
+        startNewMatch(gameMode);
       }
 
       function doSave() {
@@ -1777,18 +1877,23 @@
 
       document.getElementById('bazaar').onclick = function () {
         var r = round();
-        if (!r || r.currentPlayer !== E.HUMAN || r.roundOver || pendingSettle) return;
+        if (!r || !isInteractiveTurn() || r.roundOver) return;
         if (E.legalMoves(r).length) {
           alert('Есть ход — рынок не нужен');
           return;
         }
-        E.drawFromMarket(r);
+        E.drawFromMarket(r, match());
         afterHumanOrAi();
       };
 
-      document.getElementById('newgame').onclick = function () {
-        if (confirm('Начать новую партию?')) newGame();
+      document.getElementById('newgame').onclick = openGameModeModal;
+      document.getElementById('mode-ai-btn').onclick = function () {
+        startNewMatch(E.GameMode.AI);
       };
+      document.getElementById('mode-pvp-btn').onclick = function () {
+        startNewMatch(E.GameMode.PVP);
+      };
+      document.getElementById('mode-cancel').onclick = closeGameModeModal;
 
       document.getElementById('save').onclick = function () {
         doSave().then(function (res) {
@@ -2060,7 +2165,11 @@
         var style = document.createElement('style');
         style.textContent = '.domino{width:var(--hand-w,34px);height:var(--hand-h,68px);}';
         document.head.appendChild(style);
-        newGame();
+        try {
+          var savedMode = localStorage.getItem('five130tg_game_mode');
+          if (savedMode === E.GameMode.PVP || savedMode === E.GameMode.AI) gameMode = savedMode;
+        } catch (e) {}
+        startNewMatch(gameMode);
       });
     })();
   </script>

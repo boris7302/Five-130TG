@@ -5,7 +5,7 @@
 # Freeze 0.001: docs/releases/v0.001_FREEZE.md
 
 app.version=0.002
-app.rev=045
+app.rev=047
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -53,3 +53,4 @@ app.rev=045
 044  7101d58  Freeze v0.001: docs, chats archive, release note (линия закрыта).
 045  f51c409  Open v0.002: APP_VERSION=0.002, session log YYYY/MM/DD HH:MM:SS.
 046  af43859  docs: PvP Telegram plan for v0.002.
+047  ec621a5  PvP stage 1: hot-seat mode, game mode modal, no AI in pvp.

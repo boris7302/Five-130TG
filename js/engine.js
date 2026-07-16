@@ -10,6 +10,7 @@
   const MATCH_TARGET = 125;
   const HUMAN = 0;
   const AI = 1;
+  const GameMode = { AI: 'ai', PVP: 'pvp' };
   const FIVE130_WIN_MIN = 125;
   const FIVE130_WIN_HIGH = 130;
   const FIVE130_REFLECT = 235;
@@ -18,7 +19,7 @@
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.002";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 45;
+  const APP_REV = 47;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
@@ -428,8 +429,14 @@
     opts = opts || {};
     const seed = opts.seed != null ? (opts.seed >>> 0) : ((Date.now() ^ (Math.random() * 1e9)) >>> 0);
     const rng = mulberry32(seed);
+    const gameMode = opts.gameMode === GameMode.PVP ? GameMode.PVP : GameMode.AI;
+    const playerNames = opts.playerNames && opts.playerNames.length === 2
+      ? opts.playerNames.slice(0, 2)
+      : defaultPlayerNames(gameMode);
     const match = {
       gameType: opts.gameType === 'five125' ? 'five125' : 'five130',
+      gameMode: gameMode,
+      playerNames: playerNames,
       scores: [0, 0],
       gameIndex: 0,
       lastWinner: 0,
@@ -512,7 +519,10 @@
       round.starter = op.starter;
       round.currentPlayer = op.starter;
       round.requiredOpening = op.tile;
-      if (op.starter === HUMAN) {
+      if (match.gameMode === GameMode.PVP) {
+        round.message = 'Первый ход: ' + playerDisplayName(op.starter, match) +
+          ' · ' + op.tile.label;
+      } else if (op.starter === HUMAN) {
         applyMove(round, {
           end: EndId.MainLeft, tile: op.tile, isFirst: true, extra: [],
         });
@@ -587,7 +597,7 @@
     return true;
   }
 
-  function drawFromMarket(round) {
+  function drawFromMarket(round, match) {
     if (round.roundOver) return false;
     if (legalMoves(round).length) {
       round.message = 'Есть ход — рынок не нужен.';
@@ -604,8 +614,8 @@
       drawnCount++;
       if (listLegalMovesBase(round.board, round.hands[round.currentPlayer], null,
           !round.board.hasCenter).length) {
-        const who = playerDisplayName(round.currentPlayer);
-        const msg = bazaarDrawMessage(who, drawnCount, round.currentPlayer === HUMAN);
+        const who = playerDisplayName(round.currentPlayer, match);
+        const msg = bazaarDrawMessage(who, drawnCount, !isAiControlled(match, round.currentPlayer));
         round.actionLog.push({
           player: round.currentPlayer,
           text: 'взял с рынка: ' + drawnCount,
@@ -620,8 +630,8 @@
       }
     }
     if (drawnCount > 0) {
-      const who = playerDisplayName(round.currentPlayer);
-      const msg = bazaarDrawMessage(who, drawnCount, round.currentPlayer === HUMAN) +
+      const who = playerDisplayName(round.currentPlayer, match);
+      const msg = bazaarDrawMessage(who, drawnCount, !isAiControlled(match, round.currentPlayer)) +
         ' — хода всё равно нет.';
       round.actionLog.push({
         player: round.currentPlayer,
@@ -638,10 +648,22 @@
     return false;
   }
 
-  /** Имя игрока для UI (задел под второго человека). */
-  function playerDisplayName(player) {
-    if (player === HUMAN) return 'Вы';
-    return 'Компьютер';
+  /** Имя игрока для UI (слот 0 / 1). */
+  function playerDisplayName(player, match) {
+    if (match && match.playerNames && match.playerNames[player]) {
+      return match.playerNames[player];
+    }
+    return player === HUMAN ? 'Вы' : 'Компьютер';
+  }
+
+  /** Слот управляется ИИ (только режим vs ПК). */
+  function isAiControlled(match, player) {
+    return match && match.gameMode !== GameMode.PVP && player === AI;
+  }
+
+  function defaultPlayerNames(gameMode) {
+    if (gameMode === GameMode.PVP) return ['Игрок 1', 'Игрок 2'];
+    return ['Вы', 'Компьютер'];
   }
 
   /** «N камень/камня/камней». */
@@ -684,7 +706,9 @@
     }
   }
 
-  function settleRound(round) {
+  function settleRound(round, match) {
+    const n0 = playerDisplayName(0, match);
+    const n1 = playerDisplayName(1, match);
     const d = {
       player0: round.moveScores[0],
       player1: round.moveScores[1],
@@ -713,9 +737,9 @@
       d.player1 += d.leftover[1];
     }
     if (round.endReason === 'fish') {
-      d.summary = 'Рыба! Ходов больше нет! Итог: Вы ' + d.player0 + '  Комп ' + d.player1;
+      d.summary = 'Рыба! Ходов больше нет! Итог: ' + n0 + ' ' + d.player0 + '  ' + n1 + ' ' + d.player1;
     } else {
-      d.summary = 'Итог игры: Вы ' + d.player0 + '  Комп ' + d.player1;
+      d.summary = 'Итог игры: ' + n0 + ' ' + d.player0 + '  ' + n1 + ' ' + d.player1;
     }
     return d;
   }
@@ -734,7 +758,9 @@
     return { applied: applied, overflowTotal: total };
   }
 
-  function evaluateFive130End(scores) {
+  function evaluateFive130End(scores, match) {
+    const n0 = playerDisplayName(0, match);
+    const n1 = playerDisplayName(1, match);
     const q0 = scores[0] >= FIVE130_WIN_MIN;
     const q1 = scores[1] >= FIVE130_WIN_MIN;
     if (!q0 && !q1) return null;
@@ -742,10 +768,10 @@
       return { draw: true, winner: -1, status: 'Ничья!' };
     }
     if (scores[0] === FIVE130_WIN_MIN && scores[1] === FIVE130_WIN_HIGH) {
-      return { draw: false, winner: 0, status: 'Победа!' };
+      return { draw: false, winner: 0, status: 'Победа! (' + n0 + ')' };
     }
     if (scores[1] === FIVE130_WIN_MIN && scores[0] === FIVE130_WIN_HIGH) {
-      return { draw: false, winner: 1, status: 'Победил компьютер' };
+      return { draw: false, winner: 1, status: 'Победа! (' + n1 + ')' };
     }
     let w;
     if (q0 && !q1) w = 0;
@@ -753,7 +779,7 @@
     else w = scores[0] > scores[1] ? 0 : 1;
     return {
       draw: false, winner: w,
-      status: w === HUMAN ? 'Победа!' : 'Победил компьютер',
+      status: 'Победа! (' + playerDisplayName(w, match) + ')',
     };
   }
 
@@ -779,7 +805,7 @@
         match.statusLine = 'Ничья! (10 списаний)';
         return;
       }
-      const end = evaluateFive130End(match.scores);
+      const end = evaluateFive130End(match.scores, match);
       if (end) {
         match.matchOver = true;
         match.matchDraw = end.draw;
@@ -795,7 +821,7 @@
         match.statusLine = 'Ничья!';
       } else {
         match.matchWinner = match.scores[0] > match.scores[1] ? 0 : 1;
-        match.statusLine = match.matchWinner === HUMAN ? 'Победа!' : 'Победил компьютер';
+        match.statusLine = 'Победа! (' + playerDisplayName(match.matchWinner, match) + ')';
       }
       return;
     }
@@ -834,14 +860,15 @@
 
   function runAiTurn(match) {
     const round = match.round;
-    if (!round || round.roundOver || round.currentPlayer !== AI || match.matchOver) return;
+    if (!round || round.roundOver || match.gameMode === GameMode.PVP ||
+        round.currentPlayer !== AI || match.matchOver) return;
     const moves = legalMoves(round);
     if (moves.length) {
       applyMove(round, pickAiMove(round));
       return;
     }
     if (round.market.length) {
-      drawFromMarket(round);
+      drawFromMarket(round, match);
       const bazaarInfo = round.lastBazaarDraw;
       if (!round.roundOver && round.currentPlayer === AI && legalMoves(round).length) {
         applyMove(round, pickAiMove(round));
@@ -1120,6 +1147,11 @@
     lines.push('# dumped=' + (new Date()).toISOString());
     lines.push('# seed=' + match.seed);
     lines.push('# game_type=' + match.gameType);
+    lines.push('# mode=' + (match.gameMode || GameMode.AI));
+    if (match.playerNames) {
+      lines.push('# player0_name=' + match.playerNames[0]);
+      lines.push('# player1_name=' + match.playerNames[1]);
+    }
     lines.push('# scores=' + match.scores[0] + ',' + match.scores[1]);
     lines.push('# game_index=' + match.gameIndex);
     lines.push('# match_over=' + (match.matchOver ? 1 : 0));
@@ -1162,6 +1194,10 @@
     appVersionLabel: appVersionLabel,
     HUMAN: HUMAN,
     AI: AI,
+    GameMode: GameMode,
+    playerDisplayName: playerDisplayName,
+    isAiControlled: isAiControlled,
+    defaultPlayerNames: defaultPlayerNames,
     EndId: EndId,
     EndName: EndName,
     Tile: Tile,
