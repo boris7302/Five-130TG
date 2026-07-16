@@ -129,26 +129,53 @@
     }
 
     /* Modal */
-    #modal, #debug-modal {
+    #modal, #debug-modal, #profile-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
-    #modal.open, #debug-modal.open { display: flex; }
-    #modal .card, #debug-modal .card {
+    #modal.open, #debug-modal.open, #profile-modal.open { display: flex; }
+    #modal .card, #debug-modal .card, #profile-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
-    #modal h2, #debug-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
-    #modal .lines, #debug-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
-    #modal .lines strong, #debug-modal .lines strong { color: var(--text); font-weight: 700; }
-    #modal .btns, #debug-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
-    #modal .btns button, #debug-modal .btns button {
+    #modal h2, #debug-modal h2, #profile-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #modal .lines, #debug-modal .lines, #profile-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong { color: var(--text); font-weight: 700; }
+    #modal .btns, #debug-modal .btns, #profile-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #modal .btns button, #debug-modal .btns button, #profile-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
-    #modal-continue, #debug-copy, #debug-download { background: var(--accent); color: #1a1408; }
-    #debug-close { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
+    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame { background: var(--accent); color: #1a1408; }
+    #debug-close, #profile-cancel { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
+
+    #profile-fab {
+      position: fixed; right: 8px; top: 48%;
+      z-index: 40; transform: translateY(-50%);
+      width: 44px; min-height: 72px; padding: 8px 4px;
+      border-radius: 12px 0 0 12px;
+      border: 1px solid rgba(245,240,230,.4);
+      border-right: none;
+      background: rgba(30, 63, 52, 0.95);
+      color: var(--text); font-weight: 800; font-size: 0.75rem;
+      line-height: 1.15; cursor: pointer;
+      box-shadow: -2px 2px 10px rgba(0,0,0,.35);
+    }
+    #profile-fab .pid { display: block; font-size: 1.15rem; color: var(--accent); }
+    #profile-modal .profile-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
+    #profile-modal .profile-opt {
+      display: flex; gap: 10px; align-items: flex-start;
+      text-align: left; padding: 10px 12px; border-radius: 12px;
+      border: 1px solid rgba(245,240,230,.3); background: rgba(0,0,0,.18);
+      color: var(--text); cursor: pointer; font-size: 0.85rem;
+    }
+    #profile-modal .profile-opt.selected {
+      border-color: var(--accent); background: rgba(201,162,39,.18);
+    }
+    #profile-modal .profile-opt .tag {
+      flex: 0 0 28px; font-weight: 900; font-size: 1.1rem; color: var(--accent);
+    }
     #modal-save {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.4);
@@ -166,6 +193,7 @@
       <div id="score">0 : 0</div>
     </div>
   </header>
+  <button type="button" id="profile-fab" title="Профиль раскладки">Профиль<span class="pid" id="profile-fab-id">A</span></button>
   <div id="status">Загрузка…</div>
   <div id="board-wrap"><canvas id="board"></canvas></div>
 
@@ -195,6 +223,19 @@
   </div>
   <div id="store-status">MatchStore: …</div>
   <div id="note">Движок JS (порт C++) · v0.001 · хранение ключ=значение</div>
+
+  <div id="profile-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Профиль раскладки</h2>
+      <div class="lines">Выберите профиль загиба/масштаба (A–E) перед партией или смените и перезапустите.</div>
+      <div class="profile-list" id="profile-list"></div>
+      <div class="btns">
+        <button type="button" id="profile-newgame">Выбрать и новая партия</button>
+        <button type="button" id="profile-apply">Только применить</button>
+        <button type="button" id="profile-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
 
   <div id="debug-modal" role="dialog" aria-modal="true">
     <div class="card">
@@ -717,6 +758,15 @@
         handH: 68,
         layoutProfile: 'A'
       };
+      var cfgMap = null;
+      var profilePick = 'A';
+      var PROFILE_INFO = {
+        A: 'Загиб 70% · shrink 80% · крупные камни',
+        B: 'Загиб 75% · shrink 80% · средний размер',
+        C: 'Загиб 80% · shrink 85% · позже сжатие',
+        D: 'Загиб 65% · shrink 80% · самые крупные',
+        E: 'Один порог 80% на загиб и shrink'
+      };
 
       function parseCfg(text) {
         var map = {};
@@ -773,6 +823,8 @@
         if (map['ui.hand.tile_h_px']) cfgBoard.handH = parseInt(map['ui.hand.tile_h_px'], 10) || cfgBoard.handH;
         root.setProperty('--hand-w', cfgBoard.handW + 'px');
         root.setProperty('--hand-h', cfgBoard.handH + 'px');
+        var fab = document.getElementById('profile-fab-id');
+        if (fab) fab.textContent = (cfgBoard.layoutProfile || 'A');
       }
 
       function loadCfg() {
@@ -783,11 +835,53 @@
             if (!r.ok) throw new Error('cfg ' + r.status);
             return r.text();
           }).then(function (t) {
-            applyCfg(parseCfg(t));
+            cfgMap = parseCfg(t);
+            try {
+              var saved = localStorage.getItem('five130tg_layout_profile');
+              if (saved && /^[A-E]$/i.test(saved)) {
+                cfgMap['board.layout_profile'] = saved.toUpperCase();
+              }
+            } catch (e) {}
+            applyCfg(cfgMap);
+            profilePick = (cfgBoard.layoutProfile || 'A').toUpperCase();
             return t;
           }).catch(function () { return tryNext(i + 1); });
         }
         return tryNext(0);
+      }
+
+      function setLayoutProfile(id, restart) {
+        id = String(id || 'A').toUpperCase();
+        if (!PROFILE_INFO[id]) id = 'A';
+        profilePick = id;
+        if (!cfgMap) cfgMap = {};
+        cfgMap['board.layout_profile'] = id;
+        applyCfg(cfgMap);
+        try { localStorage.setItem('five130tg_layout_profile', id); } catch (e) {}
+        document.getElementById('profile-modal').classList.remove('open');
+        if (restart) newGame();
+        else { refreshUi(); paint(); }
+        setStoreStatus('Профиль раскладки: ' + id);
+      }
+
+      function openProfileModal() {
+        profilePick = (cfgBoard.layoutProfile || 'A').toUpperCase();
+        var list = document.getElementById('profile-list');
+        list.innerHTML = '';
+        Object.keys(PROFILE_INFO).forEach(function (id) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'profile-opt' + (id === profilePick ? ' selected' : '');
+          b.innerHTML = '<span class="tag">' + id + '</span><span>' + PROFILE_INFO[id] + '</span>';
+          b.onclick = function () {
+            profilePick = id;
+            Array.prototype.forEach.call(list.children, function (c) {
+              c.classList.toggle('selected', c === b);
+            });
+          };
+          list.appendChild(b);
+        });
+        document.getElementById('profile-modal').classList.add('open');
       }
 
       function buildDebugText() {
@@ -914,6 +1008,17 @@
         doSave().then(function (res) {
           alert('Сохранено: ' + res.match_id);
         }).catch(function (err) { alert(String(err)); });
+      };
+
+      document.getElementById('profile-fab').onclick = openProfileModal;
+      document.getElementById('profile-cancel').onclick = function () {
+        document.getElementById('profile-modal').classList.remove('open');
+      };
+      document.getElementById('profile-apply').onclick = function () {
+        setLayoutProfile(profilePick, false);
+      };
+      document.getElementById('profile-newgame').onclick = function () {
+        setLayoutProfile(profilePick, true);
       };
 
       window.addEventListener('resize', paint);
