@@ -4,7 +4,7 @@
 # Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
 
 app.version=0.001
-app.rev=031
+app.rev=032
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -37,3 +37,4 @@ app.rev=031
 029  e674b40  UI_APPEARANCE: scope includes macOS and other graphical shells.
 030  bea0953  Bright last-move highlight (cyan), mandatory for all graphical OS/shells.
 031  bea0953  Last-move cyan highlight; defer bend on vertical-axis doubles (Up/Down).
+032  (pending) Spinner border: thinner brown (#8b5a2b), less neon glow.

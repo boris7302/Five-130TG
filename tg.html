@@ -547,13 +547,13 @@
         var x = cx - w / 2, y = cy - h / 2, r = Math.max(6, cell * 0.12);
         ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
         // §7 / UI_APPEARANCE: спиннер > opening > last move > центр > обычная.
-        var spinnerCol = cfgBoard.spinnerBorder || '#ff1744';
+        var spinnerCol = cfgBoard.spinnerBorder || '#8b5a2b';
         var openingCol = cfgBoard.openingBorder || '#ffd24a';
         var lastCol = cfgBoard.lastBorder || '#00e5ff';
         var centerCol = cfgBoard.centerBorder || '#d4a017';
         if (tile.isSpinner) {
           ctx.strokeStyle = spinnerCol;
-          ctx.lineWidth = Math.max(5.5, cell * 0.16);
+          ctx.lineWidth = Math.max(3, cell * 0.08);
         } else if (tile.isOpeningOrdinary) {
           ctx.strokeStyle = openingCol;
           ctx.lineWidth = Math.max(3.5, cell * 0.1);
@@ -576,26 +576,19 @@
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        // Вторая обводка для якорей (как яркая рамка Linux).
+        // Вторая обводка для якорей (спиннер — спокойнее, без неонового ореола).
         if (tile.isSpinner || tile.isOpeningOrdinary || tile.isLastMove) {
           ctx.save();
           ctx.strokeStyle = tile.isSpinner ? spinnerCol
             : (tile.isOpeningOrdinary ? openingCol : lastCol);
-          ctx.globalAlpha = tile.isSpinner ? 0.7 : (tile.isLastMove ? 0.65 : 0.45);
+          ctx.globalAlpha = tile.isSpinner ? 0.35 : (tile.isLastMove ? 0.65 : 0.45);
           ctx.lineWidth = Math.max(
-            tile.isSpinner ? 9 : (tile.isLastMove ? 8 : 6),
-            cell * (tile.isSpinner ? 0.28 : (tile.isLastMove ? 0.24 : 0.18))
+            tile.isSpinner ? 4.5 : (tile.isLastMove ? 8 : 6),
+            cell * (tile.isSpinner ? 0.12 : (tile.isLastMove ? 0.24 : 0.18))
           );
           ctx.stroke();
           ctx.restore();
-          if (tile.isSpinner) {
-            ctx.save();
-            ctx.strokeStyle = '#ff8a80';
-            ctx.globalAlpha = 0.85;
-            ctx.lineWidth = Math.max(2.5, cell * 0.07);
-            ctx.stroke();
-            ctx.restore();
-          } else if (tile.isLastMove) {
+          if (tile.isLastMove) {
             ctx.save();
             ctx.strokeStyle = '#b2ffff';
             ctx.globalAlpha = 0.9;
@@ -1098,7 +1091,7 @@
         handW: 34,
         handH: 68,
         layoutProfile: 'A',
-        spinnerBorder: '#ff1744',
+        spinnerBorder: '#8b5a2b',
         centerBorder: '#d4a017',
         openingBorder: '#ffd24a',
         lastBorder: '#00e5ff',
