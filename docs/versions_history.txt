@@ -4,7 +4,7 @@
 # Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
 
 app.version=0.001
-app.rev=042
+app.rev=043
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -48,3 +48,4 @@ app.rev=042
 040  6a94b1c  Header: mobile clock row; desktop score/stones labels (очки/камни).
 041  32dc037  Center stat labels; desktop ~2× width shell (1040px); rev.041.
 042  f47e893  Desktop-only fullscreen; ui-desktop layout; sync index.html; rev.042.
+043  (pending)  Stones header: digits under «камни», Вы/ПК below numbers; rev.043.
