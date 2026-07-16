@@ -38,8 +38,26 @@
     if (r <= 2) return sum - r;
     return sum + (5 - r);
   }
+  /**
+   * Штраф за остаток на руке (rules_125 §5; рыба §7.2).
+   * Один 0|0 → −25; один 6|6 → −50; оба (только эти два) → −75;
+   * иначе сумма pip, округлённая до кратного 5 (§5.1/§5.3).
+   */
   function leftoverHandPenalty(hand) {
     if (!hand.length) return 0;
+    let has00 = false, has66 = false, other = 0;
+    for (let i = 0; i < hand.length; i++) {
+      const t = hand[i];
+      if (t.lo === 0 && t.hi === 0) has00 = true;
+      else if (t.lo === 6 && t.hi === 6) has66 = true;
+      else other++;
+    }
+    if (other === 0) {
+      if (has00 && has66) return -75;
+      if (has00 && hand.length === 1) return -25;
+      if (has66 && hand.length === 1) return -50;
+      // несколько копий одного дубля невозможно в комплекте — fallback ниже
+    }
     if (hand.length === 1 && hand[0].isDouble) {
       if (hand[0].lo === 0) return -25;
       if (hand[0].lo === 6) return -50;
@@ -523,7 +541,7 @@
       round.roundOver = true;
       round.endReason = 'fish';
       round.winner = round.currentPlayer;
-      round.message = 'Рыба!';
+      round.message = 'Рыба! Ходов больше нет!';
       return true;
     }
     round.currentPlayer = 1 - round.currentPlayer;
@@ -573,7 +591,7 @@
         round.winner = round.actionLog[i].player;
         break;
       }
-      round.message = 'Рыба!';
+      round.message = 'Рыба! Ходов больше нет!';
     }
   }
 
@@ -605,7 +623,11 @@
       d.player0 += d.leftover[0];
       d.player1 += d.leftover[1];
     }
-    d.summary = 'Итог игры: Вы ' + d.player0 + '  Комп ' + d.player1;
+    if (round.endReason === 'fish') {
+      d.summary = 'Рыба! Ходов больше нет! Итог: Вы ' + d.player0 + '  Комп ' + d.player1;
+    } else {
+      d.summary = 'Итог игры: Вы ' + d.player0 + '  Комп ' + d.player1;
+    }
     return d;
   }
 
@@ -649,8 +671,7 @@
   function applyRoundResult(match, round, delta) {
     match.scores[0] += delta.player0;
     match.scores[1] += delta.player1;
-    if (match.scores[0] < 0) match.scores[0] = 0;
-    if (match.scores[1] < 0) match.scores[1] = 0;
+    // §8.2: очки партии могут уходить в минус (списания при рыбе / остатке).
     match.gameIndex++;
     if (round.endReason === 'fish') {
       match.fishNextStarter = true;
@@ -1036,6 +1057,7 @@
     spinnerLabel: spinnerLabel,
     centerLabel: centerLabel,
     scoringEndsPipSum: scoringEndsPipSum,
+    leftoverHandPenalty: leftoverHandPenalty,
     buildDebugDump: buildDebugDump,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

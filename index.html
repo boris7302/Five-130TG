@@ -695,15 +695,22 @@
         var lines = [];
         if (r.endReason === 'fish') {
           lines.push('<div style="color:#ffd24a;font-weight:900;margin-bottom:8px">' +
-            'РЫБА! — некому и некуда ходить (рынок пуст)</div>');
+            'Игра завершилась рыбой: ходов больше нет (рынок пуст).</div>');
+          var fishWho = (r.winner === E.HUMAN) ? 'Вы' : 'Компьютер';
+          lines.push('<div>Рыбу сделал: <strong>' + fishWho +
+            '</strong> — первым в следующей игре ходит этот игрок (§7.3).</div>');
         }
         lines.push('<div>Списание за игру: <strong>Вы ' + delta.player0 +
           '</strong> · <strong>ПК ' + delta.player1 + '</strong></div>');
         lines.push('<div>Ходы: Вы ' + delta.moveScore[0] + ', ПК ' + delta.moveScore[1] +
-          '; остаток: Вы ' + delta.leftover[0] + ', ПК ' + delta.leftover[1] +
+          '; остаток (§5): Вы ' + delta.leftover[0] + ', ПК ' + delta.leftover[1] +
           (delta.finish[0] || delta.finish[1]
-            ? ('; финиш-штраф: Вы ' + delta.finish[0] + ', ПК ' + delta.finish[1]) : '') +
+            ? ('; финиш-штраф (§6): Вы ' + delta.finish[0] + ', ПК ' + delta.finish[1]) : '') +
           '</div>');
+        if (r.endReason === 'fish') {
+          lines.push('<div style="font-size:0.82rem;opacity:0.9">Остаток при рыбе: обычное округление pip×5; ' +
+            'один 0|0 → −25, один 6|6 → −50, оба дубля на руке → −75.</div>');
+        }
         lines.push('<div>Счёт партии: <strong>' + m.scores[0] + ' : ' + m.scores[1] + '</strong></div>');
         lines.push('<div>Сыграно игр в партии: <strong>' + m.gameIndex + '</strong></div>');
         if (m.matchOver) {
@@ -792,7 +799,7 @@
 
         // Яркое сообщение о рыбе (как «идите на базар»), rules_125 §7.
         if (pendingSettle && r && r.endReason === 'fish') {
-          el.textContent = 'РЫБА! — НЕКОМУ И НЕКУДА ХОДИТЬ';
+          el.textContent = 'Рыба! Ходов больше нет!';
           el.classList.add('show');
           if (btn) btn.classList.remove('need-bazaar');
           return;
