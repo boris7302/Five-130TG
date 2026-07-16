@@ -1,7 +1,8 @@
 # Five-130TG — история выкладок (GitHub Pages / gh-pages)
 # Формат версии в игре: v0.001 (rev.#NNN)
 # rev = порядковый номер коммита на ветке gh-pages.
-# Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
+# Линия 0.001 ЗАКРЫТА: финальная runtime-выкладка rev.#043 (2026-07-16).
+# Freeze-документация: docs/releases/v0.001_FREEZE.md
 
 app.version=0.001
 app.rev=043

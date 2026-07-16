@@ -1,22 +1,56 @@
 ================================================================================
-Five-130TG — выжимка переписки (часть 0002tg) — ЧЕРНОВИК
-Дата: 2026-07-16
-Версия: 0.001 ОТКРЫТА (не freeze)
+Five-130TG — выжимка переписки (часть 0002tg)
+Дата фиксации: 2026-07-16
+Версия: 0.001 ЗАКРЫТА (freeze rev.#043)
+Источник: agent-transcript 6a810794-d658-4d61-b0b0-3c6d22561b8d
 ================================================================================
 
-СТАТУС: черновик архива. Линию 0.001 не закрывать до проверки UI.
+ТЕМЫ СЕССИИ
+-----------
+A. UI appearance — UI_APPEARANCE.md, часы, vs, стрелки (rev.#028–029)
+B. Last-move highlight + BranchUp bend §5.7 (rev.#030–031)
+C. Spinner presets rust/amber/slate/ink; last-move per profile (rev.#032–034)
+D. Победа! красная; вкладка Помощь (rev.#035–037)
+E. Mobile cache bust для Help (rev.#038)
+F. Footer copyright (rev.#039)
+G. Header mobile/desktop: очки/камни, часы (rev.#040)
+H. Desktop width + центрирование stat labels (rev.#041–042)
+I. Stones: цифры под «камни», Вы/ПК ниже (rev.#043)
+J. Freeze 0.001 — docs, chats, archive
 
-ТЕМЫ
-----
-A. UI appearance (обязательный документ для всех GUI)
-B. Баг BranchUp / отложенный загиб §5.7
-C. Стили якоря + last-move без neon
-D. Победа! (крупный красный) + вкладка Помощь
-E. Freeze 0.001 / старт 0.002 — ОТЛОЖЕНО до тестирования
+КЛЮЧЕВЫЕ РЕПЛИКИ ПОЛЬЗОВАТЕЛЯ (сжато)
+------------------------------------
+• «4 варианта якоря, default amber»; «0|0 и 6|6 нельзя первым камнем»
+• «Последний ход слишком неоново» → профили last-move
+• «Победа ярче красным» + «Помощь» как Профиль/Якорь
+• «Закрывать не спеши! Ещё не протестировали!»
+• «На мобильном старая Help» → cache bust
+• Footer copyright Boris Bulatov (Boris Games), 2026
+• Mobile: часы закрывают Rev; desktop: очки/камни с подписями
+• Desktop окно узкое — в 2 раза шире
+• «очки»/«камни» по центру; Вы/ПК под цифрами
+• «Работает. Дооформи документацию, переписку и архив. Закрываем 0.001.»
 
-КОД ДЛЯ ЛОКАЛЬНОЙ ПРОВЕРКИ (ещё не обязательно на Pages)
--------------------------------------------------------
-web/tg.html — Победа!, Помощь, якорь, last-move
-web/js/engine.js — отложенный загиб, last placements
-cfg/five130tg.cfg — пресеты якоря
-tools/test_tile_orientation.js — регрессия ориентации
+ФАЙЛЫ / МОДУЛИ
+--------------
+web/tg.html       — UI, header, Help, footer, desktop shell
+web/js/engine.js  — правила, lastPlacements, bends, APP_VERSION/REV
+cfg/five130tg.cfg — цвета, spinner presets
+tools/test_tile_orientation.js — регрессия ориентации/загиба
+docs/UI_APPEARANCE.md, TILE_*.md, BEND_*.md, RULES_*.txt
+
+ВЫКЛАДКИ (gh-pages, фрагмент)
+-----------------------------
+038 1ad8c86  Mobile cache bust
+039 c43f89c  Footer copyright
+040 6a94b1c  Header mobile clock + desktop stats
+041 32dc037  Center labels; 1040px shell
+042 f47e893  Desktop fullscreen
+043 0321bf9  Stones layout (Вы/ПК под цифрами)
+
+FREEZE
+------
+См. docs/releases/v0.001_FREEZE.md
+Следующая версия: 0.002 (roadmap) — отдельная задача.
+
+================================================================================
