@@ -35,5 +35,5 @@ app.rev=031
 027  7c7e436  Version label v0.001 (rev.#027); versions_history for gh-pages revs.
 028  b835acc  UI appearance: bright spinner, clock, colored arrows, matchup vs.
 029  e674b40  UI_APPEARANCE: scope includes macOS and other graphical shells.
-030  (bundled-in-031) Bright last-move highlight (cyan), mandatory for all graphical OS/shells.
-031  (pending) Last-move cyan highlight; defer bend on vertical-axis doubles (Up/Down).
+030  bea0953  Bright last-move highlight (cyan), mandatory for all graphical OS/shells.
+031  bea0953  Last-move cyan highlight; defer bend on vertical-axis doubles (Up/Down).
