@@ -1,11 +1,11 @@
 # Five-130TG — история выкладок (GitHub Pages / gh-pages)
 # Формат версии в игре: v0.001 (rev.#NNN)
 # rev = порядковый номер коммита на ветке gh-pages.
-# Линия 0.001 ЗАКРЫТА: финальная runtime-выкладка rev.#043 (2026-07-16).
-# Freeze-документация: docs/releases/v0.001_FREEZE.md
+# Линия 0.001 ЗАКРЫТА (rev.#043). Открыта линия 0.002 (rev.#045+).
+# Freeze 0.001: docs/releases/v0.001_FREEZE.md
 
-app.version=0.001
-app.rev=043
+app.version=0.002
+app.rev=045
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).

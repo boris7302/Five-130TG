@@ -1,7 +1,7 @@
 /**
  * Five-130 game engine (JS port of C++ core for Telegram Mini App).
  * Format/rules: rules_125 + rules_130. No JSON match format — MatchStore stays KV.
- * @version 0.001
+ * @version 0.002
  */
 (function (global) {
   'use strict';
@@ -16,9 +16,9 @@
   const FIVE130_OVERFLOW_DRAW = 10;
 
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
-  const APP_VERSION = "0.001";
+  const APP_VERSION = "0.002";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 43;
+  const APP_REV = 45;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
