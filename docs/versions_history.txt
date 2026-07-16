@@ -1,0 +1,35 @@
+# Five-130TG — история выкладок (GitHub Pages / gh-pages)
+# Формат версии в игре: v0.001 (rev.#NNN)
+# rev = порядковый номер коммита на ветке gh-pages.
+# Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
+
+app.version=0.001
+app.rev=026
+
+001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
+002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
+003  5deda05  Add HTML Mini App for Telegram WebView (Flutter blank-screen workaround).
+004  c904080  Make HTML the Telegram entry; no blocking external scripts.
+005  d771daa  Add MatchStore skeleton (key=value + IndexedDB) to Mini App.
+006  dfe1528  Add playable JS engine (rules port) to Telegram Mini App.
+007  7a9a222  Fix board layout: no tile overlap, branches from spinner, larger fonts.
+008  b8f514b  Shrink domino tiles and fonts by about half.
+009  5e2fe29  v0.001: pip UI, one-click moves, round modal, stone counts, debug dump.
+010  0387d5e  v0.001: load cfg in UI, debug MatchStore + shareable data-URL.
+011  5e7bf2a  Fix board scale: shrink only at 80% occupy; add bend requirements.
+012  c5fab27  Implement vertical→left bends; keep layout profiles A–E (active A).
+013  b5476e6  Add side button to pick layout profile A–E before/during play.
+014  a9a704c  Fix branch bends: CCW up→left / down→right; Turn side-join.
+015  09cdbb4  Show live score as party + move points (multiples of 5), like Linux TUI.
+016  269fad5  L-bend Turn geometry: side join with flush outer edges (not T on tip).
+017  233802e  Warn brightly to use bazaar when no legal moves; clear after draw.
+018  1195bbc  v0.001 polish: full profile label, bazaar count, fish banner.
+019  11491d6  Fish wording, modal §7.3, leftover 0|0/6|6/both=-75.
+020  a362565  Enable board pan/scroll on mobile Telegram.
+021  a257d8f  Fix branch up/down doubles: always horizontal (lo===hi); TILE_ORIENTATION.md.
+022  67e4cf8  Fix tiny first tile: scale.start is boost >=1.2, not legacy half-size.
+023  fd6e50b  Announce market draws with player name and stone count.
+024  80e9c47  Clear bazaar banner after human move.
+025  2ffefa3  Highlight closed spinner (red) and opening ordinary (yellow), matching Linux §7.
+026  (pending)  Version display v0.001 (rev.#026); versions_history.txt
+

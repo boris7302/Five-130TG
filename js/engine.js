@@ -17,6 +17,12 @@
 
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.001";
+  /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
+  const APP_REV = 26;
+  function appVersionLabel() {
+    const rev = String(APP_REV).padStart(3, '0');
+    return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
+  }
 
   const EndId = { MainLeft: 0, MainRight: 1, BranchUp: 2, BranchDown: 3 };
   const EndName = ['влево', 'вправо', 'вверх', 'вниз'];
@@ -1114,6 +1120,8 @@
 
   global.Five130Engine = {
     APP_VERSION: APP_VERSION,
+    APP_REV: APP_REV,
+    appVersionLabel: appVersionLabel,
     HUMAN: HUMAN,
     AI: AI,
     EndId: EndId,
