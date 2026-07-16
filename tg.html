@@ -3,87 +3,206 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Пятак-130</title>
+  <title>Пятак-130 v0.001</title>
   <style>
     :root {
       --bg: #1b4d3e;
+      --felt: #164536;
       --text: #f5f0e6;
       --muted: rgba(245, 240, 230, 0.75);
       --accent: #c9a227;
+      --arrow: #ff3b5c;
+      --warn: #ffd24a;
+      --tile-face: #f5f0e6;
+      --tile-ai: #e8eef5;
+      --pip-human: #8b6914;
+      --pip-ai: #3a5a8c;
+      --font-ui: "Segoe UI", system-ui, -apple-system, sans-serif;
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0; padding: 0; height: 100%;
       background: var(--bg); color: var(--text);
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      font-family: var(--font-ui);
     }
-    body { display: flex; flex-direction: column; min-height: 100%; }
+    body { display: flex; flex-direction: column; min-height: 100%; max-height: 100%; overflow: hidden; }
     header {
-      padding: 12px 16px 8px;
+      padding: 10px 12px 6px;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
     }
-    header h1 { margin: 0; font-size: 1.2rem; font-weight: 800; }
-    #score { font-weight: 700; white-space: nowrap; }
-    #status { padding: 0 16px 8px; color: var(--muted); font-size: 0.9rem; min-height: 1.2em; }
+    header h1 { margin: 0; font-size: 1.15rem; font-weight: 800; }
+    .ver { font-size: 0.7rem; font-weight: 600; opacity: 0.7; margin-left: 6px; }
+    #score-wrap {
+      display: flex; align-items: center; gap: 10px; font-weight: 700; white-space: nowrap;
+    }
+    .stones { display: flex; align-items: baseline; gap: 8px; font-size: 0.95rem; }
+    .stones .lbl { color: var(--muted); font-size: 0.7rem; font-weight: 600; }
+    .stones .n { font-variant-numeric: tabular-nums; }
+    .stones .n.low {
+      color: var(--warn);
+      font-size: 1.45rem;
+      text-shadow: 0 0 8px rgba(255, 210, 74, 0.55);
+      font-weight: 900;
+    }
+    #score { font-size: 1.05rem; }
+    #status { padding: 0 12px 6px; color: var(--muted); font-size: 0.82rem; min-height: 1.1em; }
     #board-wrap {
-      flex: 1; margin: 0 12px; border-radius: 16px; overflow: hidden;
-      border: 1px solid rgba(0,0,0,.25); background: #164536; min-height: 220px;
+      flex: 1 1 auto; margin: 0 10px; border-radius: 14px; overflow: hidden;
+      border: 1px solid rgba(0,0,0,.25); background: var(--felt); min-height: 160px;
     }
     canvas { width: 100%; height: 100%; display: block; }
-    #hand-label { padding: 8px 16px 4px; font-size: 0.85rem; color: var(--muted); }
-    #hand { display: flex; gap: 8px; overflow-x: auto; padding: 4px 12px 8px; }
-    .tile-btn, .move-btn {
-      flex: 0 0 auto; min-width: 44px; height: 48px; border-radius: 8px;
-      border: 2px solid #8b6914; background: #f5f0e6; color: #222;
-      font-weight: 700; font-size: 14px; padding: 4px 6px; letter-spacing: 0.3px;
+
+    #play-area {
+      display: grid;
+      grid-template-columns: 1fr minmax(108px, 32%);
+      grid-template-rows: auto auto auto;
+      gap: 4px 8px;
+      padding: 4px 8px 0;
+      max-height: 42vh;
     }
-    .move-btn { font-size: 12px; min-width: 72px; height: 44px; }
-    .tile-btn.selected, .move-btn.selected {
-      border-color: var(--accent); border-width: 3px; background: #fff3c4;
+    #hand-block { grid-column: 1; grid-row: 1 / span 2; min-width: 0; }
+    #moves-block { grid-column: 1; grid-row: 3; min-width: 0; }
+    #log-block {
+      grid-column: 2; grid-row: 1 / span 3;
+      display: flex; flex-direction: column; min-height: 0;
+      background: rgba(0,0,0,.22); border-radius: 10px; padding: 6px;
     }
-    #moves-label { padding: 0 16px 4px; font-size: 0.85rem; color: var(--muted); }
-    #moves { display: flex; gap: 8px; overflow-x: auto; padding: 0 12px 8px; min-height: 40px; }
-    #actions { display: flex; gap: 10px; padding: 8px 16px; flex-wrap: wrap; }
+    .sec-label { font-size: 0.75rem; color: var(--muted); padding: 2px 2px 4px; }
+    #hand, #moves-simple, #moves-compound {
+      display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 6px; align-items: flex-end;
+    }
+    #moves-compound { border-top: 1px dashed rgba(245,240,230,.2); margin-top: 2px; padding-top: 6px; }
+    #log {
+      flex: 1; overflow-y: auto; font-size: 0.72rem; line-height: 1.35;
+      color: var(--muted); word-break: break-word;
+    }
+    #log .row { padding: 3px 2px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    #log .you { color: #ffe6a0; }
+    #log .pc { color: #a8c4ef; }
+
+    /* Vertical pip tiles */
+    .domino {
+      display: inline-flex; flex-direction: column;
+      width: 34px; height: 68px;
+      background: var(--tile-face); border: 2px solid #8b6914;
+      border-radius: 6px; overflow: hidden; flex: 0 0 auto;
+      box-shadow: 0 1px 2px rgba(0,0,0,.25);
+    }
+    .domino .half {
+      flex: 1; position: relative;
+    }
+    .domino .half + .half { border-top: 1.5px solid rgba(139,105,20,.45); }
+    .domino .pip {
+      position: absolute; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--pip-human); transform: translate(-50%, -50%);
+    }
+    .move-btn {
+      display: inline-flex; flex-direction: column; align-items: center;
+      gap: 2px; padding: 4px 6px; border-radius: 10px;
+      border: 2px solid rgba(245,240,230,.35); background: rgba(0,0,0,.15);
+      color: var(--text); cursor: pointer; flex: 0 0 auto;
+    }
+    .move-btn:active { transform: scale(0.97); }
+    .move-btn .arrows {
+      display: flex; gap: 4px; font-size: 1.05rem; font-weight: 900;
+      color: var(--arrow); line-height: 1; text-shadow: 0 0 6px rgba(255,59,92,.45);
+      letter-spacing: 1px;
+    }
+    .move-btn .combo {
+      display: flex; gap: 4px; align-items: flex-end;
+    }
+    .move-btn.first-only .domino { border-color: var(--accent); }
+
+    #actions { display: flex; gap: 8px; padding: 6px 10px; flex-wrap: wrap; }
     button.action {
-      flex: 1; min-width: 88px; padding: 12px; border-radius: 12px; border: none;
-      font-size: 0.95rem; font-weight: 600;
+      flex: 1; min-width: 72px; padding: 10px 8px; border-radius: 11px; border: none;
+      font-size: 0.88rem; font-weight: 600;
     }
-    #bazaar, #newgame, #save, #list {
+    #bazaar, #newgame, #save, #list, #debug {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.35);
     }
-    #play { background: var(--accent); color: #1a1408; }
-    #play:disabled { opacity: 0.45; }
     #store-status, #note {
-      padding: 0 16px 8px; font-size: 0.75rem; color: var(--muted); text-align: center;
+      padding: 0 10px 4px; font-size: 0.68rem; color: var(--muted); text-align: center;
     }
-    #log {
-      max-height: 72px; overflow: auto; margin: 0 12px 10px; padding: 8px;
-      background: rgba(0,0,0,.18); border-radius: 8px; font-size: 0.75rem;
+
+    /* Modal */
+    #modal {
+      display: none; position: fixed; inset: 0; z-index: 50;
+      background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
+    }
+    #modal.open { display: flex; }
+    #modal .card {
+      width: min(420px, 100%); background: #1e3f34; color: var(--text);
+      border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
+      box-shadow: 0 12px 40px rgba(0,0,0,.45);
+    }
+    #modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #modal .lines strong { color: var(--text); font-weight: 700; }
+    #modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #modal .btns button {
+      flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
+      font-weight: 700; font-size: 0.95rem;
+    }
+    #modal-continue { background: var(--accent); color: #1a1408; }
+    #modal-save {
+      background: transparent; color: var(--text);
+      border: 1px solid rgba(245,240,230,.4);
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Пятак-130</h1>
-    <div id="score">0 : 0</div>
+    <h1>Пятак-130<span class="ver" id="app-ver">v0.001</span></h1>
+    <div id="score-wrap">
+      <div class="stones" id="stones" title="Камни в руке">
+        <span><span class="lbl">Вы</span> <span class="n" id="stones-you">7</span></span>
+        <span><span class="lbl">ПК</span> <span class="n" id="stones-ai">7</span></span>
+      </div>
+      <div id="score">0 : 0</div>
+    </div>
   </header>
   <div id="status">Загрузка…</div>
   <div id="board-wrap"><canvas id="board"></canvas></div>
-  <div id="hand-label">Ваша рука</div>
-  <div id="hand"></div>
-  <div id="moves-label">Ходы</div>
-  <div id="moves"></div>
+
+  <div id="play-area">
+    <div id="hand-block">
+      <div class="sec-label">Ваша рука</div>
+      <div id="hand"></div>
+    </div>
+    <div id="moves-block">
+      <div class="sec-label">Ходы (одно нажатие)</div>
+      <div id="moves-simple"></div>
+      <div class="sec-label" id="compound-label" style="display:none">Дубли (§2.8)</div>
+      <div id="moves-compound" style="display:none"></div>
+    </div>
+    <div id="log-block">
+      <div class="sec-label">История</div>
+      <div id="log"></div>
+    </div>
+  </div>
+
   <div id="actions">
-    <button class="action" id="play" type="button" disabled>Ход</button>
     <button class="action" id="bazaar" type="button">Базар</button>
     <button class="action" id="newgame" type="button">Новая</button>
     <button class="action" id="save" type="button">Сохранить</button>
     <button class="action" id="list" type="button">Партии</button>
+    <button class="action" id="debug" type="button">Отладка</button>
   </div>
   <div id="store-status">MatchStore: …</div>
-  <div id="log"></div>
-  <div id="note">Движок JS (порт C++) · хранение ключ=значение</div>
+  <div id="note">Движок JS (порт C++) · v0.001 · хранение ключ=значение</div>
+
+  <div id="modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2 id="modal-title">Итоги игры</h2>
+      <div class="lines" id="modal-body"></div>
+      <div class="btns">
+        <button type="button" id="modal-continue">Продолжить</button>
+        <button type="button" id="modal-save">Сохранить</button>
+      </div>
+    </div>
+  </div>
 
   <script src="js/kv_parse.js"></script>
   <script src="js/match_store.js"></script>
@@ -104,15 +223,27 @@
         return;
       }
 
+      var APP_VER = E.APP_VERSION || '0.001';
+      document.getElementById('app-ver').textContent = 'v' + APP_VER;
+      document.getElementById('note').textContent =
+        'Движок JS (порт C++) · v' + APP_VER + ' · хранение ключ=значение';
+
       var session = null;
-      var selectedMove = null;
+      var pendingSettle = null; // { delta, matchOver } — ждём модалку
+      var gfxDebug = [];
       var scoreEl = document.getElementById('score');
       var statusEl = document.getElementById('status');
       var handEl = document.getElementById('hand');
-      var movesEl = document.getElementById('moves');
+      var movesSimpleEl = document.getElementById('moves-simple');
+      var movesCompoundEl = document.getElementById('moves-compound');
+      var compoundLabel = document.getElementById('compound-label');
       var logEl = document.getElementById('log');
-      var playBtn = document.getElementById('play');
+      var stonesYou = document.getElementById('stones-you');
+      var stonesAi = document.getElementById('stones-ai');
       var storeStatus = document.getElementById('store-status');
+      var modal = document.getElementById('modal');
+      var modalTitle = document.getElementById('modal-title');
+      var modalBody = document.getElementById('modal-body');
       var canvas = document.getElementById('board');
       var wrap = document.getElementById('board-wrap');
       var ctx = canvas.getContext('2d');
@@ -126,12 +257,63 @@
       function match() { return session && session.match; }
       function round() { return match() && match().round; }
 
+      function pipPositions(v) {
+        var c = 50, n = 28, f = 72, m = 50;
+        if (v === 0) return [];
+        if (v === 1) return [[c, c]];
+        if (v === 2) return [[n, n], [f, f]];
+        if (v === 3) return [[n, n], [c, c], [f, f]];
+        if (v === 4) return [[n, n], [f, n], [n, f], [f, f]];
+        if (v === 5) return [[n, n], [f, n], [c, c], [n, f], [f, f]];
+        if (v === 6) return [[n, 22], [f, 22], [n, m], [f, m], [n, 78], [f, 78]];
+        return [[c, c]];
+      }
+
+      function fillHalf(halfEl, val) {
+        halfEl.innerHTML = '';
+        pipPositions(val).forEach(function (p) {
+          var d = document.createElement('span');
+          d.className = 'pip';
+          d.style.left = p[0] + '%';
+          d.style.top = p[1] + '%';
+          halfEl.appendChild(d);
+        });
+      }
+
+      /** Вертикальный камень с точками (для руки и кнопок хода). */
+      function makeDominoEl(lo, hi) {
+        var el = document.createElement('div');
+        el.className = 'domino';
+        el.title = lo + '|' + hi;
+        var top = document.createElement('div');
+        top.className = 'half';
+        var bot = document.createElement('div');
+        bot.className = 'half';
+        fillHalf(top, lo);
+        fillHalf(bot, hi);
+        el.appendChild(top);
+        el.appendChild(bot);
+        return el;
+      }
+
+      function arrowForEnd(end) {
+        if (end === E.EndId.MainLeft) return '←';
+        if (end === E.EndId.MainRight) return '→';
+        if (end === E.EndId.BranchUp) return '↑';
+        if (end === E.EndId.BranchDown) return '↓';
+        return '•';
+      }
+
       function refreshLog() {
         var r = round();
-        if (!r) { logEl.textContent = ''; return; }
-        logEl.textContent = r.actionLog.slice(-8).map(function (a) {
-          return (a.player === E.HUMAN ? 'Вы' : 'ПК') + ': ' + a.text;
-        }).join('\n');
+        logEl.innerHTML = '';
+        if (!r) return;
+        r.actionLog.slice().reverse().forEach(function (a) {
+          var row = document.createElement('div');
+          row.className = 'row ' + (a.player === E.HUMAN ? 'you' : 'pc');
+          row.textContent = (a.player === E.HUMAN ? 'Вы' : 'ПК') + ': ' + a.text;
+          logEl.appendChild(row);
+        });
       }
 
       function pipLayout(v) {
@@ -200,7 +382,11 @@
         var W = rect.width, H = rect.height;
         ctx.fillStyle = '#164536';
         ctx.fillRect(0, 0, W, H);
-        if (!placed.length) return;
+        gfxDebug = [];
+        if (!placed.length) {
+          gfxDebug.push('empty_board');
+          return;
+        }
 
         var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
         placed.forEach(function (t) {
@@ -215,12 +401,30 @@
         minX -= pad; maxX += pad; minY -= pad; maxY += pad;
         var bw = Math.max(0.01, maxX - minX);
         var bh = Math.max(0.01, maxY - minY);
-        var cell = Math.min((W * 0.92) / bw, (H * 0.92) / bh) * 0.55;
+        var fit = Math.min((W * 0.92) / bw, (H * 0.92) / bh);
+        // Старт: один/два камня — вдвое меньше авто-fit; плюс жёсткий потолок.
+        var scale = placed.length <= 2 ? 0.275 : 0.55;
+        var cell = Math.min(fit * scale, Math.min(W, H) * 0.12, 40);
         var ox = W / 2 - ((minX + maxX) / 2) * cell;
         var oy = H / 2 - ((minY + maxY) / 2) * cell;
-        placed.forEach(function (t) {
+        gfxDebug.push('W=' + W.toFixed(1) + ';H=' + H.toFixed(1));
+        gfxDebug.push('bw=' + bw.toFixed(3) + ';bh=' + bh.toFixed(3));
+        gfxDebug.push('fit=' + fit.toFixed(3) + ';cell=' + cell.toFixed(3));
+        gfxDebug.push('ox=' + ox.toFixed(1) + ';oy=' + oy.toFixed(1));
+        gfxDebug.push('n=' + placed.length);
+        placed.forEach(function (t, i) {
           drawTile(ox + t.x * cell, oy + t.y * cell, t, cell);
+          gfxDebug.push('t' + i + '=' + t.a + '|' + t.b +
+            '@' + t.x.toFixed(2) + ',' + t.y.toFixed(2) +
+            (t.horiz ? 'H' : 'V') +
+            (t.isCenter ? 'C' : '') + (t.isSpinner ? 'S' : ''));
         });
+      }
+
+      function setStoneCount(el, n) {
+        el.textContent = String(n);
+        if (n > 0 && n <= 2) el.classList.add('low');
+        else el.classList.remove('low');
       }
 
       function renderHand() {
@@ -228,37 +432,58 @@
         var r = round();
         if (!r) return;
         r.hands[E.HUMAN].forEach(function (t) {
-          var b = document.createElement('button');
-          b.className = 'tile-btn';
-          b.type = 'button';
-          b.textContent = t.label;
-          b.disabled = true;
-          handEl.appendChild(b);
+          handEl.appendChild(makeDominoEl(t.lo, t.hi));
         });
       }
 
+      function isCompound(mv) {
+        return mv.extra && mv.extra.length > 0;
+      }
+
+      function makeMoveButton(mv) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'move-btn' + (mv.isFirst ? ' first-only' : '');
+        var steps = E.allPlacings(mv);
+        var arrows = document.createElement('div');
+        arrows.className = 'arrows';
+        if (mv.isFirst) {
+          arrows.textContent = '★';
+        } else {
+          arrows.textContent = steps.map(function (s) { return arrowForEnd(s.end); }).join(' ');
+        }
+        var combo = document.createElement('div');
+        combo.className = 'combo';
+        steps.forEach(function (s) {
+          combo.appendChild(makeDominoEl(s.tile.lo, s.tile.hi));
+        });
+        // Стрелки над камнями
+        b.appendChild(arrows);
+        b.appendChild(combo);
+        b.title = E.moveLabel(mv);
+        b.onclick = function () { playMove(mv); };
+        return b;
+      }
+
       function renderMoves() {
-        movesEl.innerHTML = '';
-        selectedMove = null;
-        playBtn.disabled = true;
+        movesSimpleEl.innerHTML = '';
+        movesCompoundEl.innerHTML = '';
+        compoundLabel.style.display = 'none';
+        movesCompoundEl.style.display = 'none';
         var r = round();
         var m = match();
-        if (!r || !m || m.matchOver || r.roundOver || r.currentPlayer !== E.HUMAN) return;
+        if (!r || !m || m.matchOver || r.roundOver || r.currentPlayer !== E.HUMAN || pendingSettle) return;
         var moves = E.legalMoves(r);
-        moves.forEach(function (mv, i) {
-          var b = document.createElement('button');
-          b.className = 'move-btn';
-          b.type = 'button';
-          b.textContent = E.moveLabel(mv);
-          b.onclick = function () {
-            selectedMove = mv;
-            Array.prototype.forEach.call(movesEl.children, function (c, j) {
-              c.classList.toggle('selected', j === i);
-            });
-            playBtn.disabled = false;
-          };
-          movesEl.appendChild(b);
+        var simple = [], compound = [];
+        moves.forEach(function (mv) {
+          (isCompound(mv) ? compound : simple).push(mv);
         });
+        simple.forEach(function (mv) { movesSimpleEl.appendChild(makeMoveButton(mv)); });
+        if (compound.length) {
+          compoundLabel.style.display = '';
+          movesCompoundEl.style.display = 'flex';
+          compound.forEach(function (mv) { movesCompoundEl.appendChild(makeMoveButton(mv)); });
+        }
       }
 
       function updateStatus() {
@@ -266,24 +491,85 @@
         var r = round();
         if (!m || !r) return;
         scoreEl.textContent = m.scores[0] + ' : ' + m.scores[1];
+        setStoneCount(stonesYou, r.hands[E.HUMAN].length);
+        setStoneCount(stonesAi, r.hands[E.AI].length);
         var bits = [];
         if (m.matchOver) bits.push(m.statusLine || 'Партия окончена');
+        else if (pendingSettle) bits.push('Игра окончена — смотрите итоги');
         else if (r.roundOver) bits.push('Игра окончена · ' + (r.message || r.endReason || ''));
         else bits.push(r.currentPlayer === E.HUMAN ? 'Ваш ход' : 'Ход компьютера');
-        if (r.message) bits.push(r.message);
+        if (r.message && !pendingSettle) bits.push(r.message);
         if (m.statusLine && !m.matchOver) bits.push(m.statusLine);
         if (r.board && r.board.hasCenter) {
           var anchor = E.centerLabel(r.board);
           var spin = E.spinnerLabel(r.board);
-          if (spin && spin !== anchor) {
-            bits.push('якорь ' + anchor + ', спиннер ' + spin);
-          } else if (spin) {
-            bits.push('спиннер ' + spin);
-          } else if (anchor) {
-            bits.push('якорь ' + anchor);
-          }
+          if (spin && spin !== anchor) bits.push('якорь ' + anchor + ', спиннер ' + spin);
+          else if (spin) bits.push('спиннер ' + spin);
+          else if (anchor) bits.push('якорь ' + anchor);
         }
         statusEl.textContent = bits.join(' · ');
+      }
+
+      function nextStarterLabel(m, r, delta) {
+        if (m.matchOver) return '— (партия окончена)';
+        if (r.endReason === 'fish') {
+          return (r.winner === E.HUMAN ? 'Вы' : 'Компьютер') + ' (после рыбы)';
+        }
+        if (r.winner === E.HUMAN) return 'Вы';
+        if (r.winner === E.AI) return 'Компьютер';
+        return 'По правилам партии';
+      }
+
+      function showRoundModal(delta) {
+        var m = match();
+        var r = round();
+        if (!m || !r) return;
+        modalTitle.textContent = m.matchOver ? 'Итоги партии' : 'Итоги игры';
+        var lines = [];
+        lines.push('<div>Списание за игру: <strong>Вы ' + delta.player0 +
+          '</strong> · <strong>ПК ' + delta.player1 + '</strong></div>');
+        lines.push('<div>Ходы: Вы ' + delta.moveScore[0] + ', ПК ' + delta.moveScore[1] +
+          '; остаток: Вы ' + delta.leftover[0] + ', ПК ' + delta.leftover[1] +
+          (delta.finish[0] || delta.finish[1]
+            ? ('; финиш-штраф: Вы ' + delta.finish[0] + ', ПК ' + delta.finish[1]) : '') +
+          '</div>');
+        lines.push('<div>Счёт партии: <strong>' + m.scores[0] + ' : ' + m.scores[1] + '</strong></div>');
+        lines.push('<div>Сыграно игр в партии: <strong>' + m.gameIndex + '</strong></div>');
+        if (m.matchOver) {
+          lines.push('<div><strong>' + (m.statusLine || 'Партия окончена') + '</strong></div>');
+        } else {
+          lines.push('<div>Первым в следующей игре: <strong>' +
+            nextStarterLabel(m, r, delta) + '</strong></div>');
+        }
+        modalBody.innerHTML = lines.join('');
+        modal.classList.add('open');
+      }
+
+      function closeModal() { modal.classList.remove('open'); }
+
+      function handleRoundEnd() {
+        var m = match();
+        var r = round();
+        if (!m || !r || !r.roundOver || pendingSettle) return;
+        var delta = E.settleRound(r);
+        E.applyRoundResult(m, r, delta);
+        pendingSettle = { delta: delta };
+        showRoundModal(delta);
+        refreshUi();
+      }
+
+      function continueAfterModal() {
+        var m = match();
+        if (!m) return;
+        closeModal();
+        pendingSettle = null;
+        if (m.matchOver) {
+          refreshUi();
+          return;
+        }
+        E.startRound(m, session.rng);
+        drainAi();
+        refreshUi();
       }
 
       function afterHumanOrAi() {
@@ -291,18 +577,8 @@
         var r = round();
         if (!m || !r) return;
         if (r.roundOver) {
-          var delta = E.settleRound(r);
-          E.applyRoundResult(m, r, delta);
-          statusEl.textContent = delta.summary + (m.matchOver ? (' · ' + m.statusLine) : '');
-          if (!m.matchOver) {
-            setTimeout(function () {
-              E.startRound(m, session.rng);
-              drainAi();
-              refreshUi();
-            }, 700);
-            refreshUi();
-            return;
-          }
+          handleRoundEnd();
+          return;
         }
         refreshUi();
         drainAi();
@@ -312,21 +588,13 @@
         var m = match();
         var r = round();
         var guard = 0;
-        while (m && r && !m.matchOver && !r.roundOver && r.currentPlayer === E.AI && guard++ < 40) {
+        while (m && r && !m.matchOver && !r.roundOver && !pendingSettle &&
+               r.currentPlayer === E.AI && guard++ < 40) {
           E.runAiTurn(m);
           r = round();
-          if (r && r.roundOver) {
-            var delta = E.settleRound(r);
-            E.applyRoundResult(m, r, delta);
-            if (!m.matchOver) {
-              E.startRound(m, session.rng);
-              r = round();
-              continue;
-            }
-            break;
-          }
         }
-        refreshUi();
+        if (r && r.roundOver && !pendingSettle) handleRoundEnd();
+        else refreshUi();
       }
 
       function refreshUi() {
@@ -337,27 +605,68 @@
         paint();
       }
 
-      function newGame() {
-        session = E.createMatch({ gameType: 'five130' });
-        selectedMove = null;
-        drainAi();
-        refreshUi();
-      }
-
-      playBtn.onclick = function () {
+      function playMove(mv) {
         var r = round();
-        if (!r || !selectedMove || r.currentPlayer !== E.HUMAN) return;
-        if (!E.applyMove(r, selectedMove)) {
+        if (!r || r.currentPlayer !== E.HUMAN || pendingSettle) return;
+        if (!E.applyMove(r, mv)) {
           alert(r.message || 'Недопустимый ход');
           refreshUi();
           return;
         }
         afterHumanOrAi();
-      };
+      }
+
+      function newGame() {
+        session = E.createMatch({ gameType: 'five130' });
+        pendingSettle = null;
+        closeModal();
+        drainAi();
+        refreshUi();
+      }
+
+      function doSave() {
+        if (!window.Five130MatchStore || !match()) return Promise.reject('нет партии');
+        var m = match();
+        return Five130MatchStore.saveStubFromUi({
+          final_score: m.scores[0] + ',' + m.scores[1],
+          match_winner: m.matchOver ? String(m.matchWinner) : '-1',
+          match_draw: m.matchDraw ? '1' : '0',
+          match_over: m.matchOver ? '1' : '0',
+          status: m.statusLine || 'in-progress',
+          game_type: m.gameType,
+          seed: String(m.seed),
+          app_version: APP_VER,
+          game_index: String(m.gameIndex),
+        }).then(function (res) {
+          setStoreStatus('Сохранено · ' + res.match_id);
+          return res;
+        });
+      }
+
+      function downloadDebug() {
+        var m = match();
+        if (!m || !E.buildDebugDump) return;
+        var extra = {};
+        gfxDebug.forEach(function (line, i) { extra['gfx.' + i] = line; });
+        extra['ui_pending_settle'] = pendingSettle ? 1 : 0;
+        extra['viewport'] = wrap.getBoundingClientRect().width + 'x' +
+          wrap.getBoundingClientRect().height;
+        var text = E.buildDebugDump(m, extra);
+        var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'five130tg_debug_v' + APP_VER + '_' + (m.seed || 0) + '.txt';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () {
+          URL.revokeObjectURL(a.href);
+          a.remove();
+        }, 500);
+      }
 
       document.getElementById('bazaar').onclick = function () {
         var r = round();
-        if (!r || r.currentPlayer !== E.HUMAN || r.roundOver) return;
+        if (!r || r.currentPlayer !== E.HUMAN || r.roundOver || pendingSettle) return;
         if (E.legalMoves(r).length) {
           alert('Есть ход — рынок не нужен');
           return;
@@ -371,18 +680,7 @@
       };
 
       document.getElementById('save').onclick = function () {
-        if (!window.Five130MatchStore || !match()) return;
-        var m = match();
-        Five130MatchStore.saveStubFromUi({
-          final_score: m.scores[0] + ',' + m.scores[1],
-          match_winner: m.matchOver ? String(m.matchWinner) : '-1',
-          match_draw: m.matchDraw ? '1' : '0',
-          match_over: m.matchOver ? '1' : '0',
-          status: m.statusLine || 'in-progress',
-          game_type: m.gameType,
-          seed: String(m.seed),
-        }).then(function (res) {
-          setStoreStatus('Сохранено · ' + res.match_id);
+        doSave().then(function (res) {
           alert('Сохранено: ' + res.match_id);
         }).catch(function (err) { alert(String(err)); });
       };
@@ -398,6 +696,14 @@
             return (i + 1) + '. ' + it.id + ' · ' + it.final_score + ' · ' + it.result;
           }).join('\n'));
         });
+      };
+
+      document.getElementById('debug').onclick = downloadDebug;
+      document.getElementById('modal-continue').onclick = continueAfterModal;
+      document.getElementById('modal-save').onclick = function () {
+        doSave().then(function (res) {
+          alert('Сохранено: ' + res.match_id);
+        }).catch(function (err) { alert(String(err)); });
       };
 
       window.addEventListener('resize', paint);

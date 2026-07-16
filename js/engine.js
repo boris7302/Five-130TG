@@ -1,6 +1,7 @@
 /**
  * Five-130 game engine (JS port of C++ core for Telegram Mini App).
  * Format/rules: rules_125 + rules_130. No JSON match format — MatchStore stays KV.
+ * @version 0.001
  */
 (function (global) {
   'use strict';
@@ -13,6 +14,9 @@
   const FIVE130_WIN_HIGH = 130;
   const FIVE130_REFLECT = 235;
   const FIVE130_OVERFLOW_DRAW = 10;
+
+  /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
+  const APP_VERSION = "0.001";
 
   const EndId = { MainLeft: 0, MainRight: 1, BranchUp: 2, BranchDown: 3 };
   const EndName = ['влево', 'вправо', 'вверх', 'вниз'];
@@ -235,28 +239,41 @@
     return out;
   }
 
-  function findMaxDoubleCombo(options, idx, current, best) {
-    if (idx >= options.length) {
-      if (current.length > best.length) {
-        best.length = 0;
-        for (let i = 0; i < current.length; i++) best.push(current[i]);
+  /**
+   * Перечисляет все комбинации дублей размера >= 2 без общих концов/камней (§2.8).
+   * @param {{tile:object,end:number}[]} options Варианты (дубль, конец).
+   * @return {{tile:object,end:number}[][]} Список комбинаций.
+   */
+  function findAllDoubleCombos(options) {
+    const out = [];
+    function rec(start, current) {
+      if (current.length >= 2) out.push(current.slice());
+      for (let i = start; i < options.length; i++) {
+        const c = options[i];
+        let usedEnd = false, usedTile = false;
+        for (let j = 0; j < current.length; j++) {
+          if (current[j].end === c.end) usedEnd = true;
+          if (tileEq(current[j].tile, c.tile)) usedTile = true;
+        }
+        if (!usedEnd && !usedTile) {
+          current.push(c);
+          rec(i + 1, current);
+          current.pop();
+        }
       }
-      return;
     }
-    findMaxDoubleCombo(options, idx + 1, current, best);
-    const c = options[idx];
-    let usedEnd = false, usedTile = false;
-    for (let i = 0; i < current.length; i++) {
-      if (current[i].end === c.end) usedEnd = true;
-      if (tileEq(current[i].tile, c.tile)) usedTile = true;
-    }
-    if (!usedEnd && !usedTile) {
-      current.push(c);
-      findMaxDoubleCombo(options, idx + 1, current, best);
-      current.pop();
-    }
+    rec(0, []);
+    return out;
   }
 
+  /**
+   * Легальные ходы с составными дублями: одиночные + все комбинации §2.8.
+   * @param {object} board Доска.
+   * @param {object[]} hand Рука.
+   * @param {object|null} requiredFirst Обязательный первый камень (или null).
+   * @param {boolean} block0066 Запрет 0|0/6|6 на первом ходе.
+   * @return {object[]} Список ходов.
+   */
   function listLegalMovesForHand(board, hand, requiredFirst, block0066) {
     const base = listLegalMovesBase(board, hand, requiredFirst, block0066);
     if (!board.hasCenter || requiredFirst) return base;
@@ -273,27 +290,21 @@
       }
       if (!dup) choices.push({ tile: m.tile, end: m.end });
     }
-    const best = [];
-    findMaxDoubleCombo(choices, 0, [], best);
-    if (best.length >= 2) {
-      const out = [];
-      const primary = best[0];
+    const combos = findAllDoubleCombos(choices);
+    if (!combos.length) return base;
+    const out = [];
+    for (let i = 0; i < singles.length; i++) out.push(singles[i]);
+    for (let i = 0; i < doubles.length; i++) out.push(doubles[i]);
+    for (let c = 0; c < combos.length; c++) {
+      const combo = combos[c];
+      const primary = combo[0];
       const extra = [];
-      for (let i = 1; i < best.length; i++) {
-        extra.push({ end: best[i].end, tile: best[i].tile, isFirst: false });
+      for (let i = 1; i < combo.length; i++) {
+        extra.push({ end: combo[i].end, tile: combo[i].tile, isFirst: false });
       }
       out.push({ end: primary.end, tile: primary.tile, isFirst: false, extra: extra });
-      for (let i = 0; i < singles.length; i++) out.push(singles[i]);
-      for (let i = 0; i < doubles.length; i++) {
-        let inCombo = false;
-        for (let j = 0; j < best.length; j++) {
-          if (tileEq(best[j].tile, doubles[i].tile)) { inCombo = true; break; }
-        }
-        if (!inCombo) out.push(doubles[i]);
-      }
-      return out;
     }
-    return base;
+    return out;
   }
 
   function allPlacings(move) {
@@ -730,9 +741,8 @@
   }
 
   /**
-   * Раскладка стола без наложений.
-   * Ветки растут от спиннера (не обязательно от геометрического центра!).
-   * Координаты — в «клетках»; размер камня учитывается при шаге.
+   * Раскладка стола без наложений + порядок pip (стык к соседу).
+   * Ветки от спиннера. @see rules_125 / graphics inward-outward.
    */
   function boardSnapshot(board) {
     const placed = [];
@@ -743,19 +753,20 @@
     }
     const GAP = 0.14;
 
-    function orientMain(tile) {
-      // На горизонтальной главной линии дубль стоит поперёк (вертикально).
-      return !tile.isDouble;
-    }
-    function orientBranch(tile) {
-      // На вертикальной ветке дубль лежит поперёк (горизонтально).
-      return !!tile.isDouble;
+    function orientMain(tile) { return !tile.isDouble; }
+    function orientBranch(tile) { return !!tile.isDouble; }
+
+    /** Для стыка: other pip относительно openPip. */
+    function otherPip(tile, inward) {
+      return tile.lo === inward ? tile.hi : tile.lo;
     }
 
-    function pushTile(tile, player, x, y, horiz, flags) {
+    function pushTile(tile, player, x, y, horiz, flags, leftOrTop, rightOrBot) {
       placed.push({
-        a: tile.lo,
-        b: tile.hi,
+        a: leftOrTop,
+        b: rightOrBot,
+        lo: tile.lo,
+        hi: tile.hi,
         human: player === HUMAN,
         horiz: horiz,
         x: x,
@@ -768,44 +779,54 @@
     const cTile = board.center.tile;
     const cHoriz = orientMain(cTile);
     const cSz = sz(cHoriz);
-    const spinnerAtCenter = board.hasSpinner && board.spinnerAtCenter;
+    // Центр: для ординарного — lo слева/сверху, hi справа/снизу; дубль одинаков.
     pushTile(cTile, board.center.player, 0, 0, cHoriz, {
       isCenter: true,
-      isSpinner: spinnerAtCenter,
-    });
+      isSpinner: board.hasSpinner && board.spinnerAtCenter,
+    }, cTile.lo, cTile.hi);
 
-    // Главная линия влево (tiles[0] у центра).
     let prevHalf = cSz.w / 2;
     let cursor = 0;
+    let prevOpen = cTile.lo; // openPip mainLeft initially
     for (let i = 0; i < board.mainLeft.tiles.length; i++) {
       const p = board.mainLeft.tiles[i];
       const h = orientMain(p.tile);
       const s = sz(h);
       cursor = cursor - prevHalf - GAP - s.w / 2;
+      const inward = prevOpen; // стык к центру/предыдущему справа
+      const outward = otherPip(p.tile, inward);
+      // горизонталь влево: слева outward, справа inward; вертикаль: сверху outward, снизу inward
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainLeft && board.spinnerIndex === i;
-      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp });
+      if (h) pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
+      else pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
+      prevOpen = outward;
       prevHalf = s.w / 2;
     }
 
-    // Главная линия вправо.
     prevHalf = cSz.w / 2;
     cursor = 0;
+    prevOpen = cTile.hi;
     for (let i = 0; i < board.mainRight.tiles.length; i++) {
       const p = board.mainRight.tiles[i];
       const h = orientMain(p.tile);
       const s = sz(h);
       cursor = cursor + prevHalf + GAP + s.w / 2;
+      const inward = prevOpen;
+      const outward = otherPip(p.tile, inward);
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainRight && board.spinnerIndex === i;
-      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp });
+      // горизонталь вправо: слева inward, справа outward
+      if (h) pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
+      else pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
+      prevOpen = outward;
       prevHalf = s.w / 2;
     }
 
-    // Координаты спиннера (откуда ветки).
     let sx = 0;
     let sy = 0;
     let spinnerHalfH = cSz.h / 2;
+    let spinnerPipVal = board.hasSpinner ? spinnerTile(board).tile.lo : -1;
     if (board.hasSpinner && !board.spinnerAtCenter) {
       for (let i = 0; i < placed.length; i++) {
         if (placed[i].isSpinner) {
@@ -815,31 +836,39 @@
           break;
         }
       }
-    } else {
-      spinnerHalfH = cSz.h / 2;
     }
 
-    // Ветка вверх от спиннера.
     prevHalf = spinnerHalfH;
     cursor = sy;
+    prevOpen = spinnerPipVal;
     for (let i = 0; i < board.branchUp.tiles.length; i++) {
       const p = board.branchUp.tiles[i];
       const h = orientBranch(p.tile);
       const s = sz(h);
       cursor = cursor - prevHalf - GAP - s.h / 2;
-      pushTile(p.tile, p.player, sx, cursor, h, {});
+      const inward = prevOpen;
+      const outward = otherPip(p.tile, inward);
+      // вверх: снизу inward, сверху outward (для vertical: a=top, b=bottom)
+      if (!h) pushTile(p.tile, p.player, sx, cursor, h, {}, outward, inward);
+      else pushTile(p.tile, p.player, sx, cursor, h, {}, inward, outward);
+      prevOpen = outward;
       prevHalf = s.h / 2;
     }
 
-    // Ветка вниз от спиннера.
     prevHalf = spinnerHalfH;
     cursor = sy;
+    prevOpen = spinnerPipVal;
     for (let i = 0; i < board.branchDown.tiles.length; i++) {
       const p = board.branchDown.tiles[i];
       const h = orientBranch(p.tile);
       const s = sz(h);
       cursor = cursor + prevHalf + GAP + s.h / 2;
-      pushTile(p.tile, p.player, sx, cursor, h, {});
+      const inward = prevOpen;
+      const outward = otherPip(p.tile, inward);
+      // вниз: сверху inward, снизу outward
+      if (!h) pushTile(p.tile, p.player, sx, cursor, h, {}, inward, outward);
+      else pushTile(p.tile, p.player, sx, cursor, h, {}, inward, outward);
+      prevOpen = outward;
       prevHalf = s.h / 2;
     }
 
@@ -848,18 +877,64 @@
 
   function spinnerLabel(board) {
     if (!board.hasSpinner) return '';
-    const t = spinnerTile(board).tile;
-    return t.label;
+    return spinnerTile(board).tile.label;
   }
   function centerLabel(board) {
     if (!board.hasCenter) return '';
     return board.center.tile.label;
   }
 
+  /** Отладочный дамп партии (ключ=значение + графика). */
+  function buildDebugDump(match, extra) {
+    const r = match.round;
+    const lines = [];
+    lines.push('# Five130TG-Debug/1');
+    lines.push('# app_version=' + APP_VERSION);
+    lines.push('# dumped=' + (new Date()).toISOString());
+    lines.push('# seed=' + match.seed);
+    lines.push('# game_type=' + match.gameType);
+    lines.push('# scores=' + match.scores[0] + ',' + match.scores[1]);
+    lines.push('# game_index=' + match.gameIndex);
+    lines.push('# match_over=' + (match.matchOver ? 1 : 0));
+    lines.push('# status=' + match.statusLine);
+    if (r) {
+      lines.push('# round_over=' + (r.roundOver ? 1 : 0));
+      lines.push('# current=' + r.currentPlayer);
+      lines.push('# hands=' + r.hands[0].length + ',' + r.hands[1].length);
+      lines.push('# market=' + r.market.length);
+      lines.push('# center=' + (r.board.hasCenter ? r.board.center.tile.label : 'empty'));
+      lines.push('# spinner=' + (spinnerLabel(r.board) || 'none'));
+      const snap = boardSnapshot(r.board);
+      lines.push('# snap_count=' + snap.length);
+      for (let i = 0; i < snap.length; i++) {
+        const t = snap[i];
+        lines.push('snap.' + i + '=' + t.a + '|' + t.b +
+          ';xy=' + t.x.toFixed(3) + ',' + t.y.toFixed(3) +
+          ';horiz=' + (t.horiz ? 1 : 0) +
+          ';center=' + (t.isCenter ? 1 : 0) +
+          ';spinner=' + (t.isSpinner ? 1 : 0) +
+          ';human=' + (t.human ? 1 : 0));
+      }
+      lines.push('@log');
+      for (let i = 0; i < r.actionLog.length; i++) {
+        lines.push('log.' + i + '=' + r.actionLog[i].player + ':' + r.actionLog[i].text);
+      }
+    }
+    if (extra) {
+      lines.push('@extra');
+      Object.keys(extra).forEach(function (k) {
+        lines.push(k + '=' + extra[k]);
+      });
+    }
+    return lines.join('\n') + '\n';
+  }
+
   global.Five130Engine = {
+    APP_VERSION: APP_VERSION,
     HUMAN: HUMAN,
     AI: AI,
     EndId: EndId,
+    EndName: EndName,
     Tile: Tile,
     createMatch: createMatch,
     startRound: startRound,
@@ -873,9 +948,11 @@
     pickAiMove: pickAiMove,
     moveLabel: moveLabel,
     samePlacings: samePlacings,
+    allPlacings: allPlacings,
     boardSnapshot: boardSnapshot,
     spinnerLabel: spinnerLabel,
     centerLabel: centerLabel,
     scoringEndsPipSum: scoringEndsPipSum,
+    buildDebugDump: buildDebugDump,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
