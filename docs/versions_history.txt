@@ -4,7 +4,7 @@
 # Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
 
 app.version=0.001
-app.rev=026
+app.rev=027
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -31,5 +31,5 @@ app.rev=026
 023  fd6e50b  Announce market draws with player name and stone count.
 024  80e9c47  Clear bazaar banner after human move.
 025  2ffefa3  Highlight closed spinner (red) and opening ordinary (yellow), matching Linux §7.
-026  (pending)  Version display v0.001 (rev.#026); versions_history.txt
-
+026  1032241  Version display v0.001 (rev.#026); versions_history.txt
+027  7c7e436  Version label v0.001 (rev.#027); versions_history for gh-pages revs.
