@@ -46,4 +46,4 @@ app.rev=041
 038  1ad8c86  Mobile cache bust: ?appver= + unregister SW; fix stale Help on phone.
 039  c43f89c  Footer copyright: Boris Bulatov (Boris Games), 2026 + version/rev.
 040  6a94b1c  Header: mobile clock row; desktop score/stones labels (очки/камни).
-041  (pending)  Center stat labels; desktop ~2× width shell (1040px); rev.041.
+041  32dc037  Center stat labels; desktop ~2× width shell (1040px); rev.041.
