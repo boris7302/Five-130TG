@@ -416,17 +416,40 @@
         minX -= pad; maxX += pad; minY -= pad; maxY += pad;
         var bw = Math.max(0.01, maxX - minX);
         var bh = Math.max(0.01, maxY - minY);
-        var fit = Math.min((W * 0.92) / bw, (H * 0.92) / bh);
-        // Старт: один/два камня — вдвое меньше авто-fit; плюс жёсткий потолок.
-        var scale = placed.length <= 2 ? cfgBoard.scaleStart : cfgBoard.scaleNormal;
-        var cell = Math.min(fit * scale, Math.min(W, H) * 0.12, cfgBoard.cellMaxPx);
-        var ox = W / 2 - ((minX + maxX) / 2) * cell;
-        var oy = H / 2 - ((minY + maxY) / 2) * cell;
+        // Масштаб по BEND_REQUIREMENTS.md §3: cell_pref, shrink только при occupy≥порога.
+        var margin = cfgBoard.margin != null ? cfgBoard.margin : 0.06;
+        var shrinkOcc = cfgBoard.shrinkOccupy != null ? cfgBoard.shrinkOccupy : 0.80;
+        var shrinkTarget = cfgBoard.shrinkTarget != null ? cfgBoard.shrinkTarget : 0.78;
+        var minPx = cfgBoard.cellMinPx != null ? cfgBoard.cellMinPx : 22;
+        var prefFrac = cfgBoard.prefFrac != null ? cfgBoard.prefFrac : 0.14;
+        var cellPref = Math.min(cfgBoard.cellMaxPx || 44, Math.min(W, H) * prefFrac);
+        if (placed.length <= 2) {
+          cellPref = Math.min(cellPref, Math.min(W, H) * prefFrac * (cfgBoard.scaleStart / 0.55));
+        }
+        var availW = Math.max(1, W * (0.5 - margin));
+        var availH = Math.max(1, H * (0.5 - margin));
+        var extL = Math.max(0, -minX), extR = Math.max(0, maxX);
+        var extU = Math.max(0, -minY), extD = Math.max(0, maxY);
+        function occ(ext, avail, cell) { return (ext * cell) / avail; }
+        var oL = occ(extL, availW, cellPref), oR = occ(extR, availW, cellPref);
+        var oU = occ(extU, availH, cellPref), oD = occ(extD, availH, cellPref);
+        var maxOcc = Math.max(oL, oR, oU, oD, 0.0001);
+        var cell = cellPref;
+        if (maxOcc >= shrinkOcc) {
+          cell = cellPref * (shrinkTarget / maxOcc);
+          cell = Math.max(minPx, cell);
+        }
+        // Якорь (0,0) в центре поля — не сжимать весь bbox в экран.
+        var ox = W / 2;
+        var oy = H / 2;
         gfxDebug.push('W=' + W.toFixed(1) + ';H=' + H.toFixed(1));
         gfxDebug.push('bw=' + bw.toFixed(3) + ';bh=' + bh.toFixed(3));
-        gfxDebug.push('fit=' + fit.toFixed(3) + ';cell=' + cell.toFixed(3));
+        gfxDebug.push('cell_pref=' + cellPref.toFixed(3) + ';cell=' + cell.toFixed(3));
+        gfxDebug.push('occupy=' + [oL, oR, oU, oD].map(function (x) { return x.toFixed(2); }).join(','));
+        gfxDebug.push('shrink_at=' + shrinkOcc + ';maxOcc=' + maxOcc.toFixed(3));
         gfxDebug.push('ox=' + ox.toFixed(1) + ';oy=' + oy.toFixed(1));
         gfxDebug.push('n=' + placed.length);
+        gfxDebug.push('layout_note=BEND_REQUIREMENTS;bends=pending');
         placed.forEach(function (t, i) {
           drawTile(ox + t.x * cell, oy + t.y * cell, t, cell);
           gfxDebug.push('t' + i + '=' + t.a + '|' + t.b +
@@ -661,12 +684,19 @@
       var lastDebugText = '';
       var lastDebugDataUrl = '';
       var cfgBoard = {
-        cellMaxPx: 40,
+        cellMaxPx: 44,
+        cellMinPx: 22,
         scaleNormal: 0.55,
         scaleStart: 0.275,
+        prefFrac: 0.14,
+        margin: 0.06,
+        shrinkOccupy: 0.80,
+        shrinkTarget: 0.78,
+        bendOccupy: 0.70,
         stonesLow: 2,
         handW: 34,
-        handH: 68
+        handH: 68,
+        layoutProfile: 'A'
       };
 
       function parseCfg(text) {
@@ -698,8 +728,15 @@
         set('--pip-ai', 'color.pip.ai');
         set('--font-ui', 'font.ui');
         if (map['board.cell.max_px']) cfgBoard.cellMaxPx = parseFloat(map['board.cell.max_px']) || cfgBoard.cellMaxPx;
+        if (map['board.cell.min_px']) cfgBoard.cellMinPx = parseFloat(map['board.cell.min_px']) || cfgBoard.cellMinPx;
+        if (map['board.cell.pref_frac']) cfgBoard.prefFrac = parseFloat(map['board.cell.pref_frac']) || cfgBoard.prefFrac;
         if (map['board.cell.scale.normal']) cfgBoard.scaleNormal = parseFloat(map['board.cell.scale.normal']) || cfgBoard.scaleNormal;
         if (map['board.cell.scale.start']) cfgBoard.scaleStart = parseFloat(map['board.cell.scale.start']) || cfgBoard.scaleStart;
+        if (map['board.margin']) cfgBoard.margin = parseFloat(map['board.margin']) || cfgBoard.margin;
+        if (map['board.shrink.occupy']) cfgBoard.shrinkOccupy = parseFloat(map['board.shrink.occupy']) || cfgBoard.shrinkOccupy;
+        if (map['board.shrink.target']) cfgBoard.shrinkTarget = parseFloat(map['board.shrink.target']) || cfgBoard.shrinkTarget;
+        if (map['board.bend.occupy']) cfgBoard.bendOccupy = parseFloat(map['board.bend.occupy']) || cfgBoard.bendOccupy;
+        if (map['board.layout_profile']) cfgBoard.layoutProfile = map['board.layout_profile'];
         if (map['ui.stones.low_threshold']) cfgBoard.stonesLow = parseInt(map['ui.stones.low_threshold'], 10) || cfgBoard.stonesLow;
         if (map['ui.hand.tile_w_px']) cfgBoard.handW = parseInt(map['ui.hand.tile_w_px'], 10) || cfgBoard.handW;
         if (map['ui.hand.tile_h_px']) cfgBoard.handH = parseInt(map['ui.hand.tile_h_px'], 10) || cfgBoard.handH;
