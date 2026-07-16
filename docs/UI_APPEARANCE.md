@@ -2,11 +2,15 @@
 
 **Статус: ОБЯЗАТЕЛЬНО к исполнению.**  
 **Версия документа:** 0.001 (2026-07-16).  
-**Область:** Telegram Mini App (`web/tg.html`, `cfg/five130tg.cfg`) **и** будущие  
-графические standalone-версии под **Windows** и **Linux** (не TUI/FTXUI).
+**Область:** Telegram Mini App (`web/tg.html`, `cfg/five130tg.cfg`) **и** любые  
+будущие **графические** клиенты Five-130 / Пятак-130, в том числе:
 
-Любая графическая оболочка Five-130 / Пятак-130 **должна** соблюдать этот файл.  
-Отклонения — только по явному решению с правкой этого документа.
+- standalone **Windows**;
+- standalone **Linux**;
+- standalone **macOS** (Mac);
+- другие графические ОС и оболочки (например BSD с GUI, мобильные оболочки вне Telegram, WebView-обёртки, Electron / Tauri / Qt / Flutter Desktop и т.п.).
+
+Текстовый TUI (FTXUI) **не** входит в область этого файла.
 
 Связанные: [TILE_HIGHLIGHT.md](TILE_HIGHLIGHT.md), [TILE_ORIENTATION.md](TILE_ORIENTATION.md),  
 [BEND_REQUIREMENTS.md](BEND_REQUIREMENTS.md), `graphics_rules.txt` §7 (Linux TUI — отдельно).
@@ -75,7 +79,8 @@ color.matchup=#ffd24a
 Те же правила §1–§3 действуют для:
 
 - Telegram Mini App (текущая реализация);
-- будущих **графических** standalone Windows / Linux (canvas / OpenGL / Qt / …).
+- графических standalone **Windows / Linux / macOS (Mac)**;
+- любых других графических ОС и оболочек (desktop WebView, Electron, Tauri, Qt, Flutter Desktop, мобильные клиенты вне Telegram и т.д.).
 
 **Не** относятся к текстовому TUI (FTXUI): там — `graphics_rules.txt` и cfg `setup_five125.cfg`.
 

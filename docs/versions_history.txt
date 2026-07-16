@@ -4,7 +4,7 @@
 # Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
 
 app.version=0.001
-app.rev=028
+app.rev=029
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -34,3 +34,4 @@ app.rev=028
 026  1032241  Version display v0.001 (rev.#026); versions_history.txt
 027  7c7e436  Version label v0.001 (rev.#027); versions_history for gh-pages revs.
 028  b835acc  UI appearance: bright spinner, clock, colored arrows, matchup vs.
+029  e674b40  UI_APPEARANCE: scope includes macOS and other graphical shells.
