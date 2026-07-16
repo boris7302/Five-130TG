@@ -570,23 +570,72 @@
       passTurn(round, 'рынок пуст');
       return false;
     }
+    let drawnCount = 0;
     while (round.market.length) {
       const drawn = round.market.pop();
       round.hands[round.currentPlayer].push(drawn);
+      drawnCount++;
       if (listLegalMovesBase(round.board, round.hands[round.currentPlayer], null,
           !round.board.hasCenter).length) {
+        const who = playerDisplayName(round.currentPlayer);
+        const msg = bazaarDrawMessage(who, drawnCount, round.currentPlayer === HUMAN);
         round.actionLog.push({
           player: round.currentPlayer,
-          text: round.currentPlayer === AI ? 'рынок' : ('рынок: ' + drawn.label),
+          text: 'взял с рынка: ' + drawnCount,
         });
-        round.message = round.currentPlayer === AI
-          ? 'Компьютер взял с рынка.'
-          : ('Взяли ' + drawn.label);
+        round.message = msg;
+        round.lastBazaarDraw = {
+          player: round.currentPlayer,
+          count: drawnCount,
+          text: msg,
+        };
         return true;
       }
     }
+    if (drawnCount > 0) {
+      const who = playerDisplayName(round.currentPlayer);
+      const msg = bazaarDrawMessage(who, drawnCount, round.currentPlayer === HUMAN) +
+        ' — хода всё равно нет.';
+      round.actionLog.push({
+        player: round.currentPlayer,
+        text: 'взял с рынка: ' + drawnCount,
+      });
+      round.message = msg;
+      round.lastBazaarDraw = {
+        player: round.currentPlayer,
+        count: drawnCount,
+        text: msg,
+      };
+    }
     passTurn(round, 'рынок пуст');
     return false;
+  }
+
+  /** Имя игрока для UI (задел под второго человека). */
+  function playerDisplayName(player) {
+    if (player === HUMAN) return 'Вы';
+    return 'Компьютер';
+  }
+
+  /** «N камень/камня/камней». */
+  function stonesWordRu(n) {
+    const abs = Math.abs(n) % 100;
+    const d = abs % 10;
+    if (abs > 10 && abs < 20) return n + ' камней';
+    if (d === 1) return n + ' камень';
+    if (d >= 2 && d <= 4) return n + ' камня';
+    return n + ' камней';
+  }
+
+  /**
+   * Сообщение о взятии с рынка.
+   * @param {string} who Имя игрока.
+   * @param {number} count Сколько взято.
+   * @param {boolean} isHuman Грамматика «взяли» для «Вы».
+   */
+  function bazaarDrawMessage(who, count, isHuman) {
+    const verb = isHuman ? 'взяли' : 'взял';
+    return 'Игрок ' + who + ' ' + verb + ' с рынка ' + stonesWordRu(count) + '.';
   }
 
   function passTurn(round, reason) {
@@ -599,7 +648,8 @@
       // better: last placing from log
       for (let i = round.actionLog.length - 1; i >= 0; i--) {
         const t = round.actionLog[i].text;
-        if (t.indexOf('пропуск') === 0 || t.indexOf('рынок') === 0) continue;
+        if (t.indexOf('пропуск') === 0 || t.indexOf('рынок') === 0 ||
+            t.indexOf('взял с рынка') === 0) continue;
         round.winner = round.actionLog[i].player;
         break;
       }
@@ -765,8 +815,15 @@
     }
     if (round.market.length) {
       drawFromMarket(round);
+      const bazaarInfo = round.lastBazaarDraw;
       if (!round.roundOver && round.currentPlayer === AI && legalMoves(round).length) {
         applyMove(round, pickAiMove(round));
+        // Не затирать факт похода на рынок последующим ходом.
+        if (bazaarInfo && bazaarInfo.player === AI && bazaarInfo.text) {
+          const moveMsg = round.message || '';
+          round.message = bazaarInfo.text +
+            (moveMsg && moveMsg.indexOf('взял с рынка') < 0 ? (' ' + moveMsg) : '');
+        }
       }
       return;
     }

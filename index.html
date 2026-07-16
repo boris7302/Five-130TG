@@ -432,7 +432,23 @@
         r.actionLog.slice().reverse().forEach(function (a) {
           var row = document.createElement('div');
           row.className = 'row ' + (a.player === E.HUMAN ? 'you' : 'pc');
-          row.textContent = (a.player === E.HUMAN ? 'Вы' : 'ПК') + ': ' + a.text;
+          var who = a.player === E.HUMAN ? 'Вы' : 'Компьютер';
+          var text = a.text || '';
+          var bm = /^взял с рынка:\s*(\d+)\s*$/.exec(text);
+          if (bm) {
+            var n = parseInt(bm[1], 10) || 0;
+            var verb = a.player === E.HUMAN ? 'взяли' : 'взял';
+            var word = (function (c) {
+              var a100 = Math.abs(c) % 100, d = a100 % 10;
+              if (a100 > 10 && a100 < 20) return c + ' камней';
+              if (d === 1) return c + ' камень';
+              if (d >= 2 && d <= 4) return c + ' камня';
+              return c + ' камней';
+            })(n);
+            row.textContent = 'Игрок ' + who + ' ' + verb + ' с рынка ' + word;
+          } else {
+            row.textContent = who + ': ' + text;
+          }
           logEl.appendChild(row);
         });
       }
@@ -881,12 +897,18 @@
               // Рынок пуст, хода нет — возможен пропуск / рыба (§7).
               el.textContent = 'НЕТ ХОДА — РЫНОК ПУСТ';
             }
+          } else if (r.lastBazaarDraw && r.lastBazaarDraw.player === E.AI &&
+                     r.lastBazaarDraw.text) {
+            // Сообщить, что компьютер ходил на рынок (с количеством камней).
+            show = true;
+            el.textContent = r.lastBazaarDraw.text;
           }
         }
         if (show) el.classList.add('show');
         else el.classList.remove('show');
         if (btn) {
-          if (show && r && r.market.length) btn.classList.add('need-bazaar');
+          if (show && r && r.market.length && E.legalMoves(r).length === 0 &&
+              r.currentPlayer === E.HUMAN) btn.classList.add('need-bazaar');
           else btn.classList.remove('need-bazaar');
         }
       }
