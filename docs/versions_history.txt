@@ -4,7 +4,7 @@
 # Уже на origin: 024; локально (highlight): 025; этот файл/версия: 026.
 
 app.version=0.001
-app.rev=037
+app.rev=038
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -43,3 +43,4 @@ app.rev=037
 035  d0d3c4e  Help tab + bright red Победа! in match-end modal.
 036  b35ba86  Help: move fab between Якорь/Профиль; add bottom Помощь button.
 037  bd8af1e  Help: paginated rules/usage; equal side-tab spacing; mobile-friendly.
+038  (pending) Mobile cache bust: ?appver= + unregister SW; fix stale Help on phone.

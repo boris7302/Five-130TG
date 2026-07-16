@@ -3,7 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Пятак-130 v0.001 (rev.#029)</title>
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Пятак-130 v0.001 (rev.#038)</title>
+  <script>
+    /* Telegram Mobile WebView часто держит старый tg.html.
+       Меняем query appver=REV → новый URL → свежая загрузка. */
+    (function () {
+      var APP_HTML_REV = '038';
+      try {
+        var q = new URLSearchParams(location.search || '');
+        if (q.get('appver') !== APP_HTML_REV) {
+          q.set('appver', APP_HTML_REV);
+          location.replace(location.pathname + '?' + q.toString() + (location.hash || ''));
+          return;
+        }
+      } catch (e) {}
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function (regs) {
+          regs.forEach(function (r) { r.unregister(); });
+        }).catch(function () {});
+      }
+      if (window.caches && caches.keys) {
+        caches.keys().then(function (keys) {
+          keys.forEach(function (k) { caches.delete(k); });
+        }).catch(function () {});
+      }
+    })();
+  </script>
   <style>
     :root {
       --bg: #1b4d3e;
@@ -398,7 +426,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#029)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#038)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -536,9 +564,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js"></script>
-  <script src="js/match_store.js"></script>
-  <script src="js/engine.js"></script>
+  <script src="js/kv_parse.js?v=038"></script>
+  <script src="js/match_store.js?v=038"></script>
+  <script src="js/engine.js?v=038"></script>
   <script>
     (function () {
       try {
