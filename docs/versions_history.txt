@@ -41,4 +41,4 @@ app.rev=036
 033  2e84102  Spinner styles rust/amber/slate/ink (default amber); UI Якорь.
 034  6846856  Last-move per anchor profile: muted border + colored pips (no neon).
 035  d0d3c4e  Help tab + bright red Победа! in match-end modal.
-036  (pending) Help: move fab between Якорь/Профиль; add bottom Помощь button.
+036  b35ba86  Help: move fab between Якорь/Профиль; add bottom Помощь button.
