@@ -729,44 +729,131 @@
     passTurn(round, 'нет хода');
   }
 
+  /**
+   * Раскладка стола без наложений.
+   * Ветки растут от спиннера (не обязательно от геометрического центра!).
+   * Координаты — в «клетках»; размер камня учитывается при шаге.
+   */
   function boardSnapshot(board) {
-    function armTiles(a) {
-      return a.tiles.map(function (p) {
-        return { a: p.tile.lo, b: p.tile.hi, human: p.player === HUMAN, horiz: true };
-      });
-    }
-    // Simplified layout for current HTML canvas (cross).
     const placed = [];
     if (!board.hasCenter) return placed;
-    placed.push({
-      a: board.center.tile.lo, b: board.center.tile.hi,
-      x: 0, y: 0, horiz: !board.center.tile.isDouble, human: board.center.player === HUMAN,
-    });
-    board.mainLeft.tiles.forEach(function (p, i) {
+
+    function sz(horiz) {
+      return horiz ? { w: 1.72, h: 0.88 } : { w: 0.88, h: 1.72 };
+    }
+    const GAP = 0.14;
+
+    function orientMain(tile) {
+      // На горизонтальной главной линии дубль стоит поперёк (вертикально).
+      return !tile.isDouble;
+    }
+    function orientBranch(tile) {
+      // На вертикальной ветке дубль лежит поперёк (горизонтально).
+      return !!tile.isDouble;
+    }
+
+    function pushTile(tile, player, x, y, horiz, flags) {
       placed.push({
-        a: p.tile.lo, b: p.tile.hi, x: -(i + 1), y: 0,
-        horiz: !p.tile.isDouble, human: p.player === HUMAN,
+        a: tile.lo,
+        b: tile.hi,
+        human: player === HUMAN,
+        horiz: horiz,
+        x: x,
+        y: y,
+        isCenter: !!(flags && flags.isCenter),
+        isSpinner: !!(flags && flags.isSpinner),
       });
+    }
+
+    const cTile = board.center.tile;
+    const cHoriz = orientMain(cTile);
+    const cSz = sz(cHoriz);
+    const spinnerAtCenter = board.hasSpinner && board.spinnerAtCenter;
+    pushTile(cTile, board.center.player, 0, 0, cHoriz, {
+      isCenter: true,
+      isSpinner: spinnerAtCenter,
     });
-    board.mainRight.tiles.forEach(function (p, i) {
-      placed.push({
-        a: p.tile.lo, b: p.tile.hi, x: (i + 1), y: 0,
-        horiz: !p.tile.isDouble, human: p.player === HUMAN,
-      });
-    });
-    board.branchUp.tiles.forEach(function (p, i) {
-      placed.push({
-        a: p.tile.lo, b: p.tile.hi, x: 0, y: -(i + 1),
-        horiz: false, human: p.player === HUMAN,
-      });
-    });
-    board.branchDown.tiles.forEach(function (p, i) {
-      placed.push({
-        a: p.tile.lo, b: p.tile.hi, x: 0, y: (i + 1),
-        horiz: false, human: p.player === HUMAN,
-      });
-    });
+
+    // Главная линия влево (tiles[0] у центра).
+    let prevHalf = cSz.w / 2;
+    let cursor = 0;
+    for (let i = 0; i < board.mainLeft.tiles.length; i++) {
+      const p = board.mainLeft.tiles[i];
+      const h = orientMain(p.tile);
+      const s = sz(h);
+      cursor = cursor - prevHalf - GAP - s.w / 2;
+      const isSp = board.hasSpinner && !board.spinnerAtCenter &&
+        board.spinnerArm === EndId.MainLeft && board.spinnerIndex === i;
+      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp });
+      prevHalf = s.w / 2;
+    }
+
+    // Главная линия вправо.
+    prevHalf = cSz.w / 2;
+    cursor = 0;
+    for (let i = 0; i < board.mainRight.tiles.length; i++) {
+      const p = board.mainRight.tiles[i];
+      const h = orientMain(p.tile);
+      const s = sz(h);
+      cursor = cursor + prevHalf + GAP + s.w / 2;
+      const isSp = board.hasSpinner && !board.spinnerAtCenter &&
+        board.spinnerArm === EndId.MainRight && board.spinnerIndex === i;
+      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp });
+      prevHalf = s.w / 2;
+    }
+
+    // Координаты спиннера (откуда ветки).
+    let sx = 0;
+    let sy = 0;
+    let spinnerHalfH = cSz.h / 2;
+    if (board.hasSpinner && !board.spinnerAtCenter) {
+      for (let i = 0; i < placed.length; i++) {
+        if (placed[i].isSpinner) {
+          sx = placed[i].x;
+          sy = placed[i].y;
+          spinnerHalfH = sz(placed[i].horiz).h / 2;
+          break;
+        }
+      }
+    } else {
+      spinnerHalfH = cSz.h / 2;
+    }
+
+    // Ветка вверх от спиннера.
+    prevHalf = spinnerHalfH;
+    cursor = sy;
+    for (let i = 0; i < board.branchUp.tiles.length; i++) {
+      const p = board.branchUp.tiles[i];
+      const h = orientBranch(p.tile);
+      const s = sz(h);
+      cursor = cursor - prevHalf - GAP - s.h / 2;
+      pushTile(p.tile, p.player, sx, cursor, h, {});
+      prevHalf = s.h / 2;
+    }
+
+    // Ветка вниз от спиннера.
+    prevHalf = spinnerHalfH;
+    cursor = sy;
+    for (let i = 0; i < board.branchDown.tiles.length; i++) {
+      const p = board.branchDown.tiles[i];
+      const h = orientBranch(p.tile);
+      const s = sz(h);
+      cursor = cursor + prevHalf + GAP + s.h / 2;
+      pushTile(p.tile, p.player, sx, cursor, h, {});
+      prevHalf = s.h / 2;
+    }
+
     return placed;
+  }
+
+  function spinnerLabel(board) {
+    if (!board.hasSpinner) return '';
+    const t = spinnerTile(board).tile;
+    return t.label;
+  }
+  function centerLabel(board) {
+    if (!board.hasCenter) return '';
+    return board.center.tile.label;
   }
 
   global.Five130Engine = {
@@ -787,6 +874,8 @@
     moveLabel: moveLabel,
     samePlacings: samePlacings,
     boardSnapshot: boardSnapshot,
+    spinnerLabel: spinnerLabel,
+    centerLabel: centerLabel,
     scoringEndsPipSum: scoringEndsPipSum,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
