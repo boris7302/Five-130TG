@@ -6,12 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.001 (rev.#041)</title>
+  <title>Пятак-130 v0.001 (rev.#042)</title>
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '041';
+      var APP_HTML_REV = '042';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -189,6 +189,26 @@
       #actions { padding: 8px 16px; }
       #footer-copy { padding: 6px 16px 12px; }
     }
+    /* Telegram Desktop may open <521px wide until fullscreen; mirror wide layout. */
+    html.ui-desktop body {
+      max-width: min(1040px, 100vw);
+      margin-left: auto;
+      margin-right: auto;
+      width: 100%;
+    }
+    html.ui-desktop header { padding: 10px 16px 8px; gap: 8px 16px; }
+    html.ui-desktop header h1 { font-size: 1.12rem; }
+    html.ui-desktop { --clock-size: 1.5rem; }
+    html.ui-desktop #weekday { font-size: 1rem; }
+    html.ui-desktop #score-wrap { gap: 28px; }
+    html.ui-desktop .stat-value { font-size: 1.35rem; }
+    html.ui-desktop .stat-label { font-size: 0.68rem; }
+    html.ui-desktop .stat-stones .n.low { font-size: 1.55rem; }
+    html.ui-desktop #status { padding: 0 16px 8px; font-size: 0.88rem; }
+    html.ui-desktop #board-wrap { margin: 0 16px; min-height: 240px; border-radius: 16px; }
+    html.ui-desktop #play-area { max-height: 46vh; padding: 6px 16px 0; gap: 6px 14px; }
+    html.ui-desktop #actions { padding: 8px 16px; }
+    html.ui-desktop #footer-copy { padding: 6px 16px 12px; }
     #status { padding: 0 12px 6px; color: var(--muted); font-size: 0.82rem; min-height: 1.1em; }
     #board-wrap {
       flex: 1 1 auto; margin: 0 10px; border-radius: 14px;
@@ -497,7 +517,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#041)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#042)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -641,9 +661,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=041"></script>
-  <script src="js/match_store.js?v=041"></script>
-  <script src="js/engine.js?v=041"></script>
+  <script src="js/kv_parse.js?v=042"></script>
+  <script src="js/match_store.js?v=042"></script>
+  <script src="js/engine.js?v=042"></script>
   <script>
     (function () {
       try {
@@ -651,10 +671,12 @@
         if (tw) {
           if (typeof tw.ready === 'function') tw.ready();
           if (typeof tw.expand === 'function') tw.expand();
-          if (typeof tw.requestFullscreen === 'function') tw.requestFullscreen();
           var plat = String(tw.platform || '').toLowerCase();
-          if (plat === 'tdesktop' || plat === 'macos' || plat === 'web' || plat === 'weba') {
+          var isDesktop = plat === 'tdesktop' || plat === 'macos' || plat === 'web' || plat === 'weba';
+          if (isDesktop) {
             document.documentElement.classList.add('ui-desktop');
+            if (typeof tw.setHeaderColor === 'function') tw.setHeaderColor('#1b4d3e');
+            if (typeof tw.requestFullscreen === 'function') tw.requestFullscreen();
           }
         } else if (window.innerWidth > 520) {
           document.documentElement.classList.add('ui-desktop');
