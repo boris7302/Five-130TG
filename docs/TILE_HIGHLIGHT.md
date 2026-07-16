@@ -8,7 +8,7 @@
 
 1. **Закрытый спиннер** (`isSpinner`) — пресет `ui.spinner.style` (`rust`/`amber`/`slate`/`ink`, default **`amber`**): рамка + фон + цвет/масштаб точек. См. UI_APPEARANCE.md §2.
 2. **Первый ординар** (`isOpeningOrdinary`) — `color.opening.border` (по умолчанию `#ffd24a`, как Linux `frame_opening=yellow`). Постоянно, пока центр — ординар.
-3. **Последний ход** (`isLastMove`) — `color.last.border` (по умолчанию `#00e5ff`, как Linux `frame_last=cyan`). Только **ординары** из последнего хода; на вашем ходе это ход противника. Сбрасывается при следующем ходе.
+3. **Последний ход** (`isLastMove`) — из того же `ui.spinner.style`: спокойная рамка + цветные точки (`last.border` / `last.pip`), без neon-cyan. Только ординары; на вашем ходе это ход противника.
 4. **Центр-дубль до спиннера** (`isCenter`) — `color.center.border` (`#d4a017`).
 5. Обычные камни — рамка игрока.
 

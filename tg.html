@@ -367,7 +367,7 @@
   <div id="spinner-modal" role="dialog" aria-modal="true">
     <div class="card">
       <h2>Стиль якоря (спиннер)</h2>
-      <div class="lines">Подсветка закрытого центрального дубля: рамка, фон и точки. По умолчанию <strong>amber</strong>.</div>
+      <div class="lines">Подсветка закрытого дубля-якоря и последнего хода (рамка + фон + точки). По умолчанию <strong>amber</strong>.</div>
       <div class="spinner-list" id="spinner-list"></div>
       <div class="btns">
         <button type="button" id="spinner-apply">Применить</button>
@@ -562,16 +562,20 @@
         var x = cx - w / 2, y = cy - h / 2, r = Math.max(6, cell * 0.12);
         if (tile.isSpinner && cfgBoard.spinnerFace) {
           ctx.fillStyle = cfgBoard.spinnerFace;
+        } else if (tile.isLastMove && cfgBoard.lastFace) {
+          ctx.fillStyle = cfgBoard.lastFace;
         } else {
           ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
         }
         // §7 / UI_APPEARANCE: спиннер > opening > last move > центр > обычная.
         var spinnerCol = cfgBoard.spinnerBorder || '#b8860b';
         var openingCol = cfgBoard.openingBorder || '#ffd24a';
-        var lastCol = cfgBoard.lastBorder || '#00e5ff';
+        var lastCol = cfgBoard.lastBorder || '#a67c00';
         var centerCol = cfgBoard.centerBorder || '#d4a017';
         var spinLw = cfgBoard.spinnerLine != null ? cfgBoard.spinnerLine : 0.1;
         var spinGlow = cfgBoard.spinnerGlow != null ? cfgBoard.spinnerGlow : 0.4;
+        var lastLw = cfgBoard.lastLine != null ? cfgBoard.lastLine : 0.09;
+        var lastGlow = cfgBoard.lastGlow != null ? cfgBoard.lastGlow : 0.3;
         if (tile.isSpinner) {
           ctx.strokeStyle = spinnerCol;
           ctx.lineWidth = Math.max(3.2, cell * spinLw);
@@ -580,7 +584,7 @@
           ctx.lineWidth = Math.max(3.5, cell * 0.1);
         } else if (tile.isLastMove) {
           ctx.strokeStyle = lastCol;
-          ctx.lineWidth = Math.max(4.5, cell * 0.13);
+          ctx.lineWidth = Math.max(3.2, cell * lastLw);
         } else if (tile.isCenter) {
           ctx.strokeStyle = centerCol;
           ctx.lineWidth = 3.5;
@@ -597,26 +601,20 @@
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        // Вторая обводка для якорей (спиннер — без неонового ореола).
+        // Вторая обводка (без неонового ореола у last-move).
         if (tile.isSpinner || tile.isOpeningOrdinary || tile.isLastMove) {
           ctx.save();
           ctx.strokeStyle = tile.isSpinner ? spinnerCol
             : (tile.isOpeningOrdinary ? openingCol : lastCol);
-          ctx.globalAlpha = tile.isSpinner ? spinGlow : (tile.isLastMove ? 0.65 : 0.45);
+          ctx.globalAlpha = tile.isSpinner ? spinGlow
+            : (tile.isLastMove ? lastGlow : 0.45);
           ctx.lineWidth = Math.max(
-            tile.isSpinner ? 5 : (tile.isLastMove ? 8 : 6),
-            cell * (tile.isSpinner ? (spinLw + 0.04) : (tile.isLastMove ? 0.24 : 0.18))
+            tile.isSpinner ? 5 : (tile.isLastMove ? 4.5 : 6),
+            cell * (tile.isSpinner ? (spinLw + 0.04)
+              : (tile.isLastMove ? (lastLw + 0.03) : 0.18))
           );
           ctx.stroke();
           ctx.restore();
-          if (tile.isLastMove) {
-            ctx.save();
-            ctx.strokeStyle = '#b2ffff';
-            ctx.globalAlpha = 0.9;
-            ctx.lineWidth = Math.max(2.5, cell * 0.07);
-            ctx.stroke();
-            ctx.restore();
-          }
         }
         ctx.beginPath();
         if (tile.horiz) { ctx.moveTo(cx, y + 6); ctx.lineTo(cx, y + h - 6); }
@@ -624,11 +622,17 @@
         ctx.strokeStyle = tile.human ? 'rgba(139,105,20,0.45)' : 'rgba(58,90,140,0.45)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-        var color = tile.isSpinner && cfgBoard.spinnerPip
-          ? cfgBoard.spinnerPip
-          : (tile.human ? '#8b6914' : '#3a5a8c');
-        var pipScale = tile.isSpinner && cfgBoard.spinnerPipScale
-          ? cfgBoard.spinnerPipScale : 1;
+        var color;
+        var pipScale = 1;
+        if (tile.isSpinner && cfgBoard.spinnerPip) {
+          color = cfgBoard.spinnerPip;
+          pipScale = cfgBoard.spinnerPipScale || 1;
+        } else if (tile.isLastMove && cfgBoard.lastPip) {
+          color = cfgBoard.lastPip;
+          pipScale = cfgBoard.lastPipScale || 1.15;
+        } else {
+          color = tile.human ? '#8b6914' : '#3a5a8c';
+        }
         function pips(hx, hy, hw, hh, val) {
           var pr = Math.min(hw, hh) * 0.1 * pipScale;
           pipLayout(val).forEach(function (p) {
@@ -1124,9 +1128,14 @@
         spinnerLine: 0.1,
         spinnerGlow: 0.4,
         spinnerPipScale: 1,
+        lastBorder: '#a67c00',
+        lastFace: '#fff8e7',
+        lastPip: '#c62828',
+        lastLine: 0.09,
+        lastGlow: 0.3,
+        lastPipScale: 1.18,
         centerBorder: '#d4a017',
         openingBorder: '#ffd24a',
-        lastBorder: '#00e5ff',
         clockEnabled: true,
         playerName0: 'Вы',
         playerName1: 'Компьютер',
@@ -1175,27 +1184,35 @@
         D: 'Загиб 65% · shrink 80% · самые крупные',
         E: 'Один порог 80% на загиб и shrink'
       };
-      /** Built-in spinner highlight presets (ui.spinner.style). */
+      /** Built-in spinner + last-move presets (ui.spinner.style). */
       var SPINNER_STYLES = {
         rust: {
-          label: 'Тёплый коричневый, тонкая рамка',
+          label: 'Тёплый коричневый; последний ход — бордовые точки',
           border: '#6b3f1e', face: '#efe4d4', pip: '#5c3317',
-          line: 0.08, glow: 0.32, pipScale: 1
+          line: 0.08, glow: 0.32, pipScale: 1,
+          lastBorder: '#8b4513', lastFace: '#f7efe6', lastPip: '#b71c1c',
+          lastLine: 0.09, lastGlow: 0.28, lastPipScale: 1.15
         },
         amber: {
-          label: 'Янтарь: золотая рамка + тёплый фон (по умолчанию)',
+          label: 'Янтарь (по умолчанию); последний ход — красные точки',
           border: '#b8860b', face: '#fff3d6', pip: '#6b4a12',
-          line: 0.1, glow: 0.4, pipScale: 1.05
+          line: 0.1, glow: 0.4, pipScale: 1.05,
+          lastBorder: '#a67c00', lastFace: '#fff8e7', lastPip: '#c62828',
+          lastLine: 0.09, lastGlow: 0.3, lastPipScale: 1.18
         },
         slate: {
-          label: 'Сланцевый: серо-синяя рамка + холодный фон',
+          label: 'Сланцевый; последний ход — синие точки',
           border: '#4a5d73', face: '#e2e8f0', pip: '#2f3e4f',
-          line: 0.1, glow: 0.38, pipScale: 1.05
+          line: 0.1, glow: 0.38, pipScale: 1.05,
+          lastBorder: '#546e7a', lastFace: '#eef2f6', lastPip: '#1565c0',
+          lastLine: 0.09, lastGlow: 0.3, lastPipScale: 1.15
         },
         ink: {
-          label: 'Чернила: тёмная рамка + крупные точки',
+          label: 'Чернила; последний ход — пурпурные точки',
           border: '#3d2914', face: '#f0ebe3', pip: '#3d2914',
-          line: 0.09, glow: 0.3, pipScale: 1.22
+          line: 0.09, glow: 0.3, pipScale: 1.22,
+          lastBorder: '#5d4037', lastFace: '#f5f0ea', lastPip: '#6a1b9a',
+          lastLine: 0.09, lastGlow: 0.28, lastPipScale: 1.2
         }
       };
 
@@ -1222,6 +1239,12 @@
         cfgBoard.spinnerLine = preset.line;
         cfgBoard.spinnerGlow = preset.glow;
         cfgBoard.spinnerPipScale = preset.pipScale;
+        cfgBoard.lastBorder = (map && map[prefix + 'last.border']) || preset.lastBorder;
+        cfgBoard.lastFace = (map && map[prefix + 'last.face']) || preset.lastFace;
+        cfgBoard.lastPip = (map && map[prefix + 'last.pip']) || preset.lastPip;
+        cfgBoard.lastLine = preset.lastLine;
+        cfgBoard.lastGlow = preset.lastGlow;
+        cfgBoard.lastPipScale = preset.lastPipScale;
         var fab = document.getElementById('spinner-fab-id');
         if (fab) fab.textContent = id;
       }
@@ -1268,7 +1291,7 @@
         applySpinnerStyle(map['ui.spinner.style'] || cfgBoard.spinnerStyle || 'amber', map);
         if (map['color.center.border']) cfgBoard.centerBorder = map['color.center.border'];
         if (map['color.opening.border']) cfgBoard.openingBorder = map['color.opening.border'];
-        if (map['color.last.border']) cfgBoard.lastBorder = map['color.last.border'];
+        // color.last.* не перетирают пресет — берутся из spinner.style.<id>.last.*
         if (map['color.matchup']) { cfgBoard.matchupColor = map['color.matchup']; root.setProperty('--matchup', map['color.matchup']); }
         if (map['color.arrow.up']) root.setProperty('--arrow-up', map['color.arrow.up']);
         if (map['color.arrow.down']) root.setProperty('--arrow-down', map['color.arrow.down']);
@@ -1327,6 +1350,9 @@
         cfgMap['color.spinner.border'] = p.border;
         cfgMap['color.spinner.face'] = p.face;
         cfgMap['color.spinner.pip'] = p.pip;
+        cfgMap['color.last.border'] = p.lastBorder;
+        cfgMap['color.last.face'] = p.lastFace;
+        cfgMap['color.last.pip'] = p.lastPip;
         applyCfg(cfgMap);
         try { localStorage.setItem('five130tg_spinner_style', id); } catch (e) {}
         var modal = document.getElementById('spinner-modal');
