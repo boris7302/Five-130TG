@@ -39,4 +39,4 @@ app.rev=034
 031  bea0953  Last-move cyan highlight; defer bend on vertical-axis doubles (Up/Down).
 032  923a893  Spinner border: thinner brown (#8b5a2b), less neon glow.
 033  2e84102  Spinner styles rust/amber/slate/ink (default amber); UI Якорь.
-034  (pending) Last-move per anchor profile: muted border + colored pips (no neon).
+034  6846856  Last-move per anchor profile: muted border + colored pips (no neon).
