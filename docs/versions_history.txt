@@ -40,4 +40,4 @@ app.rev=035
 032  923a893  Spinner border: thinner brown (#8b5a2b), less neon glow.
 033  2e84102  Spinner styles rust/amber/slate/ink (default amber); UI Якорь.
 034  6846856  Last-move per anchor profile: muted border + colored pips (no neon).
-035  (pending) Help tab + bright red Победа! in match-end modal.
+035  d0d3c4e  Help tab + bright red Победа! in match-end modal.
