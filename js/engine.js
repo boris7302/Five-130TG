@@ -18,7 +18,7 @@
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.001";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 29;
+  const APP_REV = 31;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
@@ -114,7 +114,25 @@
       mainLineDoubles: [],
       hasSpinner: false, spinnerAtCenter: false,
       spinnerArm: EndId.MainRight, spinnerIndex: 0,
+      /** @type {{atCenter:boolean,arm:string,index:number}[]} последний ход (frame_last) */
+      lastPlacements: [],
     };
+  }
+  function clearLastPlacements(b) { b.lastPlacements = []; }
+  function recordLastPlacement(b, atCenter, end, index) {
+    b.lastPlacements.push({ atCenter: !!atCenter, arm: end, index: index });
+  }
+  function isLastPlaced(b, atCenter, end, index) {
+    const lp = b.lastPlacements || [];
+    for (let i = 0; i < lp.length; i++) {
+      const p = lp[i];
+      if (atCenter) {
+        if (p.atCenter) return true;
+      } else if (!p.atCenter && p.arm === end && p.index === index) {
+        return true;
+      }
+    }
+    return false;
   }
   function arm(b, end) {
     if (end === EndId.MainLeft) return b.mainLeft;
@@ -211,6 +229,7 @@
     b.branchUp.active = false;
     b.branchDown.active = false;
     updateBranches(b);
+    recordLastPlacement(b, true, EndId.MainLeft, -1);
   }
   function placeOnEnd(b, tile, end, player) {
     tile = ensureTile(tile);
@@ -220,6 +239,7 @@
       b.mainLineDoubles.push({ atCenter: false, arm: end, index: a.tiles.length - 1 });
     }
     updateBranches(b);
+    recordLastPlacement(b, false, end, a.tiles.length - 1);
   }
   function isFirstMoveOnly(b) {
     return b.hasCenter && !b.mainLeft.tiles.length && !b.mainRight.tiles.length &&
@@ -531,6 +551,7 @@
     for (let i = 0; i < steps.length; i++) {
       removeTile(round.hands[round.currentPlayer], steps[i].tile);
     }
+    clearLastPlacements(round.board);
     for (let i = 0; i < steps.length; i++) {
       if (steps[i].isFirst) {
         placeFirst(round.board, steps[i].tile, round.currentPlayer);
@@ -887,8 +908,13 @@
         isCenter: !!(flags && flags.isCenter),
         isSpinner: !!(flags && flags.isSpinner),
         isOpeningOrdinary: !!(flags && flags.isOpeningOrdinary),
+        isLastMove: !!(flags && flags.isLastMove),
         bent: !!(flags && flags.bent),
       });
+    }
+    /** Как Linux tileFrameFlags: frame_last только для ординаров. */
+    function lastMoveFlag(tile, atCenter, end, index) {
+      return !tileIsDouble(tile) && isLastPlaced(board, atCenter, end, index);
     }
 
     const cTile = ensureTile(board.center.tile);
@@ -899,6 +925,7 @@
       isCenter: true,
       isSpinner: board.hasSpinner && board.spinnerAtCenter,
       isOpeningOrdinary: openingOrd,
+      isLastMove: lastMoveFlag(cTile, true, EndId.MainLeft, -1),
     }, cTile.lo, cTile.hi);
 
     let prevHalf = cSz.w / 2;
@@ -914,7 +941,10 @@
       const outward = otherPip(tile, inward);
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainLeft && board.spinnerIndex === i;
-      pushTile(tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
+      pushTile(tile, p.player, cursor, 0, h, {
+        isSpinner: isSp,
+        isLastMove: lastMoveFlag(tile, false, EndId.MainLeft, i),
+      }, outward, inward);
       prevOpen = outward;
       prevHalf = s.w / 2;
     }
@@ -932,7 +962,10 @@
       const outward = otherPip(tile, inward);
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainRight && board.spinnerIndex === i;
-      pushTile(tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
+      pushTile(tile, p.player, cursor, 0, h, {
+        isSpinner: isSp,
+        isLastMove: lastMoveFlag(tile, false, EndId.MainRight, i),
+      }, inward, outward);
       prevOpen = outward;
       prevHalf = s.w / 2;
     }
@@ -967,7 +1000,7 @@
      * После гориз. дубля на вертикали ординар продолжает ось (§4.2) либо
      * при загибе идёт сбоку на том же Y (§BEND_REQUIREMENTS).
      */
-    function layoutBranch(tiles, goingUp, maxStraight, metaKey) {
+    function layoutBranch(tiles, goingUp, maxStraight, metaKey, endId) {
       // +1 = вправо (down), −1 = влево (up)
       const sideSign = goingUp ? -1 : 1;
       let mode = 'vert';
@@ -984,6 +1017,7 @@
         const p = tiles[i];
         const tile = ensureTile(p.tile);
         const dbl = tileIsDouble(tile);
+        const lm = lastMoveFlag(tile, false, endId, i);
 
         if (mode === 'vert') {
           // Вертикальная ось (up И down одинаково): дубль ГОРИЗОНТАЛЬНО.
@@ -994,7 +1028,11 @@
             : cursorY + prevHalfV + GAP + s.h / 2;
           const extent = Math.abs(nextY - sy) + s.h / 2;
 
-          if (bendCCW && extent > maxStraight && i > 0) {
+          // Загиб только на ординаре. Дубль на вертикали не становится Turn:
+          // graphics_rules §5.7 / §4.5 (отложенный загиб) — иначе на узком
+          // viewport maxVert «съедает» 6|6 в хвост с horiz=false (баг Up).
+          const wantBend = bendCCW && extent > maxStraight && i > 0;
+          if (wantBend && !dbl) {
             mode = 'side';
             meta[metaKey] = i;
             // L-стык: docs/BEND_TURN_GEOMETRY.md (не «T» на торце).
@@ -1018,11 +1056,11 @@
             const outward = otherPip(tile, inward);
             if (!dbl) {
               // вертикальный ординар: a=top, b=bottom
-              if (goingUp) pushTile(tile, p.player, sx, cursorY, false, {}, outward, inward);
-              else pushTile(tile, p.player, sx, cursorY, false, {}, inward, outward);
+              if (goingUp) pushTile(tile, p.player, sx, cursorY, false, { isLastMove: lm }, outward, inward);
+              else pushTile(tile, p.player, sx, cursorY, false, { isLastMove: lm }, inward, outward);
             } else {
               // ОБЯЗАТЕЛЬНО horiz=true на up и на down (TILE_ORIENTATION.md §2).
-              pushTile(tile, p.player, sx, cursorY, true, {}, tile.lo, tile.hi);
+              pushTile(tile, p.player, sx, cursorY, true, { isLastMove: lm }, tile.lo, tile.hi);
             }
             prevOpenLocal = outward;
             prevHalfV = s.h / 2;
@@ -1042,13 +1080,13 @@
         const outward = otherPip(tile, inward);
         if (!dbl) {
           if (sideSign < 0) {
-            pushTile(tile, p.player, cursorX, cursorY, true, { bent: true }, outward, inward);
+            pushTile(tile, p.player, cursorX, cursorY, true, { bent: true, isLastMove: lm }, outward, inward);
           } else {
-            pushTile(tile, p.player, cursorX, cursorY, true, { bent: true }, inward, outward);
+            pushTile(tile, p.player, cursorX, cursorY, true, { bent: true, isLastMove: lm }, inward, outward);
           }
         } else {
           // вертикальный дубль на гориз. хвосте
-          pushTile(tile, p.player, cursorX, cursorY, false, { bent: true }, tile.lo, tile.hi);
+          pushTile(tile, p.player, cursorX, cursorY, false, { bent: true, isLastMove: lm }, tile.lo, tile.hi);
         }
         prevOpenLocal = outward;
         sideHalf = s.w / 2;
@@ -1058,8 +1096,8 @@
       }
     }
 
-    layoutBranch(board.branchUp.tiles, true, maxUp, 'bendUp');
-    layoutBranch(board.branchDown.tiles, false, maxDown, 'bendDown');
+    layoutBranch(board.branchUp.tiles, true, maxUp, 'bendUp', EndId.BranchUp);
+    layoutBranch(board.branchDown.tiles, false, maxDown, 'bendDown', EndId.BranchDown);
 
     return placed;
   }

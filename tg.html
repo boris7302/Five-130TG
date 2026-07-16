@@ -546,9 +546,10 @@
         var h = tile.horiz ? cell * 0.88 : cell * 1.72;
         var x = cx - w / 2, y = cy - h / 2, r = Math.max(6, cell * 0.12);
         ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
-        // §7: спиннер (закрытый дубль) > первый ординар > обычная рамка.
+        // §7 / UI_APPEARANCE: спиннер > opening > last move > центр > обычная.
         var spinnerCol = cfgBoard.spinnerBorder || '#ff1744';
         var openingCol = cfgBoard.openingBorder || '#ffd24a';
+        var lastCol = cfgBoard.lastBorder || '#00e5ff';
         var centerCol = cfgBoard.centerBorder || '#d4a017';
         if (tile.isSpinner) {
           ctx.strokeStyle = spinnerCol;
@@ -556,6 +557,9 @@
         } else if (tile.isOpeningOrdinary) {
           ctx.strokeStyle = openingCol;
           ctx.lineWidth = Math.max(3.5, cell * 0.1);
+        } else if (tile.isLastMove) {
+          ctx.strokeStyle = lastCol;
+          ctx.lineWidth = Math.max(4.5, cell * 0.13);
         } else if (tile.isCenter) {
           ctx.strokeStyle = centerCol;
           ctx.lineWidth = 3.5;
@@ -573,17 +577,28 @@
         ctx.fill();
         ctx.stroke();
         // Вторая обводка для якорей (как яркая рамка Linux).
-        if (tile.isSpinner || tile.isOpeningOrdinary) {
+        if (tile.isSpinner || tile.isOpeningOrdinary || tile.isLastMove) {
           ctx.save();
-          ctx.strokeStyle = tile.isSpinner ? spinnerCol : openingCol;
-          ctx.globalAlpha = tile.isSpinner ? 0.7 : 0.45;
-          ctx.lineWidth = Math.max(tile.isSpinner ? 9 : 6, cell * (tile.isSpinner ? 0.28 : 0.18));
+          ctx.strokeStyle = tile.isSpinner ? spinnerCol
+            : (tile.isOpeningOrdinary ? openingCol : lastCol);
+          ctx.globalAlpha = tile.isSpinner ? 0.7 : (tile.isLastMove ? 0.65 : 0.45);
+          ctx.lineWidth = Math.max(
+            tile.isSpinner ? 9 : (tile.isLastMove ? 8 : 6),
+            cell * (tile.isSpinner ? 0.28 : (tile.isLastMove ? 0.24 : 0.18))
+          );
           ctx.stroke();
           ctx.restore();
           if (tile.isSpinner) {
             ctx.save();
             ctx.strokeStyle = '#ff8a80';
             ctx.globalAlpha = 0.85;
+            ctx.lineWidth = Math.max(2.5, cell * 0.07);
+            ctx.stroke();
+            ctx.restore();
+          } else if (tile.isLastMove) {
+            ctx.save();
+            ctx.strokeStyle = '#b2ffff';
+            ctx.globalAlpha = 0.9;
             ctx.lineWidth = Math.max(2.5, cell * 0.07);
             ctx.stroke();
             ctx.restore();
@@ -1086,6 +1101,7 @@
         spinnerBorder: '#ff1744',
         centerBorder: '#d4a017',
         openingBorder: '#ffd24a',
+        lastBorder: '#00e5ff',
         clockEnabled: true,
         playerName0: 'Вы',
         playerName1: 'Компьютер',
@@ -1187,6 +1203,7 @@
         if (map['color.spinner.border']) cfgBoard.spinnerBorder = map['color.spinner.border'];
         if (map['color.center.border']) cfgBoard.centerBorder = map['color.center.border'];
         if (map['color.opening.border']) cfgBoard.openingBorder = map['color.opening.border'];
+        if (map['color.last.border']) cfgBoard.lastBorder = map['color.last.border'];
         if (map['color.matchup']) { cfgBoard.matchupColor = map['color.matchup']; root.setProperty('--matchup', map['color.matchup']); }
         if (map['color.arrow.up']) root.setProperty('--arrow-up', map['color.arrow.up']);
         if (map['color.arrow.down']) root.setProperty('--arrow-down', map['color.arrow.down']);
