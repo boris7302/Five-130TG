@@ -6,7 +6,7 @@
 
 ## Приоритет рамок
 
-1. **Закрытый спиннер** (`isSpinner`) — `color.spinner.border` (по умолчанию `#8b5a2b`, коричневый; умеренная рамка, без неонового ореола). Как Linux `frame_spinner_closed` по смыслу, в TG — спокойнее красного.
+1. **Закрытый спиннер** (`isSpinner`) — пресет `ui.spinner.style` (`rust`/`amber`/`slate`/`ink`, default **`amber`**): рамка + фон + цвет/масштаб точек. См. UI_APPEARANCE.md §2.
 2. **Первый ординар** (`isOpeningOrdinary`) — `color.opening.border` (по умолчанию `#ffd24a`, как Linux `frame_opening=yellow`). Постоянно, пока центр — ординар.
 3. **Последний ход** (`isLastMove`) — `color.last.border` (по умолчанию `#00e5ff`, как Linux `frame_last=cyan`). Только **ординары** из последнего хода; на вашем ходе это ход противника. Сбрасывается при следующем ходе.
 4. **Центр-дубль до спиннера** (`isCenter`) — `color.center.border` (`#d4a017`).

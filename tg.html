@@ -200,31 +200,31 @@
     }
 
     /* Modal */
-    #modal, #debug-modal, #profile-modal {
+    #modal, #debug-modal, #profile-modal, #spinner-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
-    #modal.open, #debug-modal.open, #profile-modal.open { display: flex; }
-    #modal .card, #debug-modal .card, #profile-modal .card {
+    #modal.open, #debug-modal.open, #profile-modal.open, #spinner-modal.open { display: flex; }
+    #modal .card, #debug-modal .card, #profile-modal .card, #spinner-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
-    #modal h2, #debug-modal h2, #profile-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
-    #modal .lines, #debug-modal .lines, #profile-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
-    #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong { color: var(--text); font-weight: 700; }
-    #modal .btns, #debug-modal .btns, #profile-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
-    #modal .btns button, #debug-modal .btns button, #profile-modal .btns button {
+    #modal h2, #debug-modal h2, #profile-modal h2, #spinner-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #modal .lines, #debug-modal .lines, #profile-modal .lines, #spinner-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong, #spinner-modal .lines strong { color: var(--text); font-weight: 700; }
+    #modal .btns, #debug-modal .btns, #profile-modal .btns, #spinner-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #modal .btns button, #debug-modal .btns button, #profile-modal .btns button, #spinner-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
-    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame { background: var(--accent); color: #1a1408; }
-    #debug-close, #profile-cancel { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
+    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame, #spinner-apply { background: var(--accent); color: #1a1408; }
+    #debug-close, #profile-cancel, #spinner-cancel { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
 
-    #profile-fab {
-      position: fixed; right: 0; top: 48%;
+    #profile-fab, #spinner-fab {
+      position: fixed; right: 0;
       z-index: 40; transform: translateY(-50%);
-      width: 52px; min-height: 110px; padding: 10px 6px;
+      width: 52px; min-height: 100px; padding: 10px 6px;
       border-radius: 12px 0 0 12px;
       border: 1px solid rgba(245,240,230,.4);
       border-right: none;
@@ -235,7 +235,9 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 6px;
     }
-    #profile-fab .pf-lab {
+    #profile-fab { top: 58%; }
+    #spinner-fab { top: 32%; }
+    #profile-fab .pf-lab, #spinner-fab .pf-lab {
       writing-mode: vertical-rl;
       text-orientation: mixed;
       transform: rotate(180deg);
@@ -244,21 +246,21 @@
       font-weight: 800;
       white-space: nowrap;
     }
-    #profile-fab .pid {
-      display: block; font-size: 1.25rem; color: var(--accent); font-weight: 900;
+    #profile-fab .pid, #spinner-fab .pid {
+      display: block; font-size: 0.95rem; color: var(--accent); font-weight: 900;
     }
-    #profile-modal .profile-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
-    #profile-modal .profile-opt {
+    #profile-modal .profile-list, #spinner-modal .spinner-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
+    #profile-modal .profile-opt, #spinner-modal .spinner-opt {
       display: flex; gap: 10px; align-items: flex-start;
       text-align: left; padding: 10px 12px; border-radius: 12px;
       border: 1px solid rgba(245,240,230,.3); background: rgba(0,0,0,.18);
       color: var(--text); cursor: pointer; font-size: 0.85rem;
     }
-    #profile-modal .profile-opt.selected {
+    #profile-modal .profile-opt.selected, #spinner-modal .spinner-opt.selected {
       border-color: var(--accent); background: rgba(201,162,39,.18);
     }
-    #profile-modal .profile-opt .tag {
-      flex: 0 0 28px; font-weight: 900; font-size: 1.1rem; color: var(--accent);
+    #profile-modal .profile-opt .tag, #spinner-modal .spinner-opt .tag {
+      flex: 0 0 52px; font-weight: 900; font-size: 0.85rem; color: var(--accent);
     }
 
     #bazaar-warn {
@@ -316,6 +318,7 @@
       <div id="score">0 : 0</div>
     </div>
   </header>
+  <button type="button" id="spinner-fab" title="Стиль якоря (спиннер)"><span class="pf-lab">Якорь</span><span class="pid" id="spinner-fab-id">amber</span></button>
   <button type="button" id="profile-fab" title="Профиль раскладки"><span class="pf-lab">Профиль</span><span class="pid" id="profile-fab-id">A</span></button>
   <div id="status">Загрузка…</div>
   <div id="bazaar-warn" role="status" aria-live="polite">НЕТ ХОДА — ИДИТЕ НА БАЗАР</div>
@@ -357,6 +360,18 @@
         <button type="button" id="profile-newgame">Выбрать и новая партия</button>
         <button type="button" id="profile-apply">Только применить</button>
         <button type="button" id="profile-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="spinner-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Стиль якоря (спиннер)</h2>
+      <div class="lines">Подсветка закрытого центрального дубля: рамка, фон и точки. По умолчанию <strong>amber</strong>.</div>
+      <div class="spinner-list" id="spinner-list"></div>
+      <div class="btns">
+        <button type="button" id="spinner-apply">Применить</button>
+        <button type="button" id="spinner-cancel">Отмена</button>
       </div>
     </div>
   </div>
@@ -545,15 +560,21 @@
         var w = tile.horiz ? cell * 1.72 : cell * 0.88;
         var h = tile.horiz ? cell * 0.88 : cell * 1.72;
         var x = cx - w / 2, y = cy - h / 2, r = Math.max(6, cell * 0.12);
-        ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
+        if (tile.isSpinner && cfgBoard.spinnerFace) {
+          ctx.fillStyle = cfgBoard.spinnerFace;
+        } else {
+          ctx.fillStyle = tile.human ? '#f5f0e6' : '#e8eef5';
+        }
         // §7 / UI_APPEARANCE: спиннер > opening > last move > центр > обычная.
-        var spinnerCol = cfgBoard.spinnerBorder || '#8b5a2b';
+        var spinnerCol = cfgBoard.spinnerBorder || '#b8860b';
         var openingCol = cfgBoard.openingBorder || '#ffd24a';
         var lastCol = cfgBoard.lastBorder || '#00e5ff';
         var centerCol = cfgBoard.centerBorder || '#d4a017';
+        var spinLw = cfgBoard.spinnerLine != null ? cfgBoard.spinnerLine : 0.1;
+        var spinGlow = cfgBoard.spinnerGlow != null ? cfgBoard.spinnerGlow : 0.4;
         if (tile.isSpinner) {
           ctx.strokeStyle = spinnerCol;
-          ctx.lineWidth = Math.max(3, cell * 0.08);
+          ctx.lineWidth = Math.max(3.2, cell * spinLw);
         } else if (tile.isOpeningOrdinary) {
           ctx.strokeStyle = openingCol;
           ctx.lineWidth = Math.max(3.5, cell * 0.1);
@@ -576,15 +597,15 @@
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        // Вторая обводка для якорей (спиннер — спокойнее, без неонового ореола).
+        // Вторая обводка для якорей (спиннер — без неонового ореола).
         if (tile.isSpinner || tile.isOpeningOrdinary || tile.isLastMove) {
           ctx.save();
           ctx.strokeStyle = tile.isSpinner ? spinnerCol
             : (tile.isOpeningOrdinary ? openingCol : lastCol);
-          ctx.globalAlpha = tile.isSpinner ? 0.35 : (tile.isLastMove ? 0.65 : 0.45);
+          ctx.globalAlpha = tile.isSpinner ? spinGlow : (tile.isLastMove ? 0.65 : 0.45);
           ctx.lineWidth = Math.max(
-            tile.isSpinner ? 4.5 : (tile.isLastMove ? 8 : 6),
-            cell * (tile.isSpinner ? 0.12 : (tile.isLastMove ? 0.24 : 0.18))
+            tile.isSpinner ? 5 : (tile.isLastMove ? 8 : 6),
+            cell * (tile.isSpinner ? (spinLw + 0.04) : (tile.isLastMove ? 0.24 : 0.18))
           );
           ctx.stroke();
           ctx.restore();
@@ -603,9 +624,13 @@
         ctx.strokeStyle = tile.human ? 'rgba(139,105,20,0.45)' : 'rgba(58,90,140,0.45)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
-        var color = tile.human ? '#8b6914' : '#3a5a8c';
+        var color = tile.isSpinner && cfgBoard.spinnerPip
+          ? cfgBoard.spinnerPip
+          : (tile.human ? '#8b6914' : '#3a5a8c');
+        var pipScale = tile.isSpinner && cfgBoard.spinnerPipScale
+          ? cfgBoard.spinnerPipScale : 1;
         function pips(hx, hy, hw, hh, val) {
-          var pr = Math.min(hw, hh) * 0.1;
+          var pr = Math.min(hw, hh) * 0.1 * pipScale;
           pipLayout(val).forEach(function (p) {
             ctx.beginPath();
             ctx.fillStyle = color;
@@ -749,6 +774,7 @@
         gfxDebug.push('ox=' + ox.toFixed(1) + ';oy=' + oy.toFixed(1));
         gfxDebug.push('n=' + placed.length);
         gfxDebug.push('layout_profile=' + (cfgBoard.layoutProfile || 'A'));
+        gfxDebug.push('spinner.style=' + (cfgBoard.spinnerStyle || 'amber'));
         gfxDebug.push('bend.up=' + layoutMeta.bendUp + ';bend.down=' + layoutMeta.bendDown);
         gfxDebug.push('bend.occupy=' + (cfgBoard.bendOccupy != null ? cfgBoard.bendOccupy : 0.70));
         placed.forEach(function (t, i) {
@@ -1091,7 +1117,13 @@
         handW: 34,
         handH: 68,
         layoutProfile: 'A',
-        spinnerBorder: '#8b5a2b',
+        spinnerStyle: 'amber',
+        spinnerBorder: '#b8860b',
+        spinnerFace: '#fff3d6',
+        spinnerPip: '#6b4a12',
+        spinnerLine: 0.1,
+        spinnerGlow: 0.4,
+        spinnerPipScale: 1,
         centerBorder: '#d4a017',
         openingBorder: '#ffd24a',
         lastBorder: '#00e5ff',
@@ -1135,12 +1167,36 @@
 
       var cfgMap = null;
       var profilePick = 'A';
+      var spinnerPick = 'amber';
       var PROFILE_INFO = {
         A: 'Загиб 70% · shrink 80% · крупные камни',
         B: 'Загиб 75% · shrink 80% · средний размер',
         C: 'Загиб 80% · shrink 85% · позже сжатие',
         D: 'Загиб 65% · shrink 80% · самые крупные',
         E: 'Один порог 80% на загиб и shrink'
+      };
+      /** Built-in spinner highlight presets (ui.spinner.style). */
+      var SPINNER_STYLES = {
+        rust: {
+          label: 'Тёплый коричневый, тонкая рамка',
+          border: '#6b3f1e', face: '#efe4d4', pip: '#5c3317',
+          line: 0.08, glow: 0.32, pipScale: 1
+        },
+        amber: {
+          label: 'Янтарь: золотая рамка + тёплый фон (по умолчанию)',
+          border: '#b8860b', face: '#fff3d6', pip: '#6b4a12',
+          line: 0.1, glow: 0.4, pipScale: 1.05
+        },
+        slate: {
+          label: 'Сланцевый: серо-синяя рамка + холодный фон',
+          border: '#4a5d73', face: '#e2e8f0', pip: '#2f3e4f',
+          line: 0.1, glow: 0.38, pipScale: 1.05
+        },
+        ink: {
+          label: 'Чернила: тёмная рамка + крупные точки',
+          border: '#3d2914', face: '#f0ebe3', pip: '#3d2914',
+          line: 0.09, glow: 0.3, pipScale: 1.22
+        }
       };
 
       function parseCfg(text) {
@@ -1152,6 +1208,22 @@
           map[line.slice(0, i).trim()] = line.slice(i + 1).trim();
         });
         return map;
+      }
+
+      function applySpinnerStyle(id, map) {
+        id = String(id || 'amber').toLowerCase();
+        if (!SPINNER_STYLES[id]) id = 'amber';
+        var preset = SPINNER_STYLES[id];
+        var prefix = 'spinner.style.' + id + '.';
+        cfgBoard.spinnerStyle = id;
+        cfgBoard.spinnerBorder = (map && map[prefix + 'border']) || preset.border;
+        cfgBoard.spinnerFace = (map && map[prefix + 'face']) || preset.face;
+        cfgBoard.spinnerPip = (map && map[prefix + 'pip']) || preset.pip;
+        cfgBoard.spinnerLine = preset.line;
+        cfgBoard.spinnerGlow = preset.glow;
+        cfgBoard.spinnerPipScale = preset.pipScale;
+        var fab = document.getElementById('spinner-fab-id');
+        if (fab) fab.textContent = id;
       }
 
       function applyCfg(map) {
@@ -1193,7 +1265,7 @@
         cfgBoard.shrinkTarget = parseFloat(pget('shrink.target', cfgBoard.shrinkTarget)) || cfgBoard.shrinkTarget;
         cfgBoard.prefFrac = parseFloat(pget('cell.pref_frac', cfgBoard.prefFrac)) || cfgBoard.prefFrac;
         cfgBoard.cellMaxPx = parseFloat(pget('cell.max_px', cfgBoard.cellMaxPx)) || cfgBoard.cellMaxPx;
-        if (map['color.spinner.border']) cfgBoard.spinnerBorder = map['color.spinner.border'];
+        applySpinnerStyle(map['ui.spinner.style'] || cfgBoard.spinnerStyle || 'amber', map);
         if (map['color.center.border']) cfgBoard.centerBorder = map['color.center.border'];
         if (map['color.opening.border']) cfgBoard.openingBorder = map['color.opening.border'];
         if (map['color.last.border']) cfgBoard.lastBorder = map['color.last.border'];
@@ -1231,13 +1303,56 @@
               if (saved && /^[A-E]$/i.test(saved)) {
                 cfgMap['board.layout_profile'] = saved.toUpperCase();
               }
+              var spinSaved = localStorage.getItem('five130tg_spinner_style');
+              if (spinSaved && SPINNER_STYLES[String(spinSaved).toLowerCase()]) {
+                cfgMap['ui.spinner.style'] = String(spinSaved).toLowerCase();
+              }
             } catch (e) {}
             applyCfg(cfgMap);
             profilePick = (cfgBoard.layoutProfile || 'A').toUpperCase();
+            spinnerPick = cfgBoard.spinnerStyle || 'amber';
             return t;
           }).catch(function () { return tryNext(i + 1); });
         }
         return tryNext(0);
+      }
+
+      function setSpinnerStyle(id) {
+        id = String(id || 'amber').toLowerCase();
+        if (!SPINNER_STYLES[id]) id = 'amber';
+        spinnerPick = id;
+        if (!cfgMap) cfgMap = {};
+        cfgMap['ui.spinner.style'] = id;
+        var p = SPINNER_STYLES[id];
+        cfgMap['color.spinner.border'] = p.border;
+        cfgMap['color.spinner.face'] = p.face;
+        cfgMap['color.spinner.pip'] = p.pip;
+        applyCfg(cfgMap);
+        try { localStorage.setItem('five130tg_spinner_style', id); } catch (e) {}
+        var modal = document.getElementById('spinner-modal');
+        if (modal) modal.classList.remove('open');
+        paint();
+        setStoreStatus('Стиль якоря: ' + id);
+      }
+
+      function openSpinnerModal() {
+        spinnerPick = cfgBoard.spinnerStyle || 'amber';
+        var list = document.getElementById('spinner-list');
+        list.innerHTML = '';
+        Object.keys(SPINNER_STYLES).forEach(function (id) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'spinner-opt' + (id === spinnerPick ? ' selected' : '');
+          b.innerHTML = '<span class="tag">' + id + '</span><span>' + SPINNER_STYLES[id].label + '</span>';
+          b.onclick = function () {
+            spinnerPick = id;
+            Array.prototype.forEach.call(list.children, function (c) {
+              c.classList.toggle('selected', c === b);
+            });
+          };
+          list.appendChild(b);
+        });
+        document.getElementById('spinner-modal').classList.add('open');
       }
 
       function setLayoutProfile(id, restart) {
@@ -1409,6 +1524,14 @@
       };
       document.getElementById('profile-newgame').onclick = function () {
         setLayoutProfile(profilePick, true);
+      };
+
+      document.getElementById('spinner-fab').onclick = openSpinnerModal;
+      document.getElementById('spinner-cancel').onclick = function () {
+        document.getElementById('spinner-modal').classList.remove('open');
+      };
+      document.getElementById('spinner-apply').onclick = function () {
+        setSpinnerStyle(spinnerPick);
       };
 
       window.addEventListener('resize', paint);
