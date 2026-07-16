@@ -21,11 +21,19 @@
     }
     * { box-sizing: border-box; }
     html, body {
-      margin: 0; padding: 0; height: 100%;
+      margin: 0; padding: 0; min-height: 100%;
       background: var(--bg); color: var(--text);
       font-family: var(--font-ui);
     }
-    body { display: flex; flex-direction: column; min-height: 100%; max-height: 100%; overflow: hidden; }
+    html { height: 100%; }
+    /* На телефоне нужна прокрутка: низ UI и края стола (pan внутри #board-wrap). */
+    body {
+      display: flex; flex-direction: column;
+      height: 100%; max-height: 100%;
+      overflow-x: hidden; overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
     header {
       padding: 10px 12px 6px;
       display: flex; justify-content: space-between; align-items: center; gap: 8px;
@@ -47,10 +55,21 @@
     #score { font-size: 1.05rem; }
     #status { padding: 0 12px 6px; color: var(--muted); font-size: 0.82rem; min-height: 1.1em; }
     #board-wrap {
-      flex: 1 1 auto; margin: 0 10px; border-radius: 14px; overflow: hidden;
-      border: 1px solid rgba(0,0,0,.25); background: var(--felt); min-height: 160px;
+      flex: 1 1 auto; margin: 0 10px; border-radius: 14px;
+      border: 1px solid rgba(0,0,0,.25); background: var(--felt);
+      min-height: 160px;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-x pan-y;
+      overscroll-behavior: contain;
     }
-    canvas { width: 100%; height: 100%; display: block; }
+    #board-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-width: none;
+      max-height: none;
+    }
 
     #play-area {
       display: grid;
@@ -495,14 +514,17 @@
         }
         var dpr = window.devicePixelRatio || 1;
         var rect = wrap.getBoundingClientRect();
-        canvas.width = Math.max(1, Math.floor(rect.width * dpr));
-        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        var W = rect.width, H = rect.height;
-        ctx.fillStyle = '#164536';
-        ctx.fillRect(0, 0, W, H);
+        var viewW = Math.max(1, rect.width);
+        var viewH = Math.max(1, rect.height);
         gfxDebug = [];
         if (!placed.length) {
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
+          canvas.width = Math.max(1, Math.floor(viewW * dpr));
+          canvas.height = Math.max(1, Math.floor(viewH * dpr));
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.fillStyle = '#164536';
+          ctx.fillRect(0, 0, viewW, viewH);
           gfxDebug.push('empty_board');
           return;
         }
@@ -526,12 +548,12 @@
         var shrinkTarget = cfgBoard.shrinkTarget != null ? cfgBoard.shrinkTarget : 0.78;
         var minPx = cfgBoard.cellMinPx != null ? cfgBoard.cellMinPx : 22;
         var prefFrac = cfgBoard.prefFrac != null ? cfgBoard.prefFrac : 0.14;
-        var cellPref = Math.min(cfgBoard.cellMaxPx || 44, Math.min(W, H) * prefFrac);
+        var cellPref = Math.min(cfgBoard.cellMaxPx || 44, Math.min(viewW, viewH) * prefFrac);
         if (placed.length <= 2) {
-          cellPref = Math.min(cellPref, Math.min(W, H) * prefFrac * (cfgBoard.scaleStart / 0.55));
+          cellPref = Math.min(cellPref, Math.min(viewW, viewH) * prefFrac * (cfgBoard.scaleStart / 0.55));
         }
-        var availW = Math.max(1, W * (0.5 - margin));
-        var availH = Math.max(1, H * (0.5 - margin));
+        var availW = Math.max(1, viewW * (0.5 - margin));
+        var availH = Math.max(1, viewH * (0.5 - margin));
         var extL = Math.max(0, -minX), extR = Math.max(0, maxX);
         var extU = Math.max(0, -minY), extD = Math.max(0, maxY);
         function occ(ext, avail, cell) { return (ext * cell) / avail; }
@@ -543,10 +565,48 @@
           cell = cellPref * (shrinkTarget / maxOcc);
           cell = Math.max(minPx, cell);
         }
-        // Якорь (0,0) в центре поля — не сжимать весь bbox в экран.
-        var ox = W / 2;
-        var oy = H / 2;
-        gfxDebug.push('W=' + W.toFixed(1) + ';H=' + H.toFixed(1));
+        // Если после minPx камни всё ещё выходят за край — расширяем холст и даём pan/scroll.
+        var padPx = 10;
+        var left = viewW / 2 + minX * cell;
+        var right = viewW / 2 + maxX * cell;
+        var top = viewH / 2 + minY * cell;
+        var bottom = viewH / 2 + maxY * cell;
+        var overflowL = Math.max(0, padPx - left);
+        var overflowR = Math.max(0, right - (viewW - padPx));
+        var overflowT = Math.max(0, padPx - top);
+        var overflowB = Math.max(0, bottom - (viewH - padPx));
+        var contentW = Math.ceil(viewW + overflowL + overflowR);
+        var contentH = Math.ceil(viewH + overflowT + overflowB);
+        var ox = viewW / 2 + overflowL;
+        var oy = viewH / 2 + overflowT;
+        var needScroll = contentW > viewW + 0.5 || contentH > viewH + 0.5;
+        if (needScroll) {
+          canvas.style.width = contentW + 'px';
+          canvas.style.height = contentH + 'px';
+        } else {
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
+          contentW = viewW;
+          contentH = viewH;
+        }
+        canvas.width = Math.max(1, Math.floor(contentW * dpr));
+        canvas.height = Math.max(1, Math.floor(contentH * dpr));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = '#164536';
+        ctx.fillRect(0, 0, contentW, contentH);
+        var scrollKey = needScroll ? (contentW + 'x' + contentH + ':' + placed.length) : '';
+        if (scrollKey !== (wrap.dataset.scrollKey || '')) {
+          if (needScroll) {
+            wrap.scrollLeft = Math.max(0, (contentW - viewW) / 2);
+            wrap.scrollTop = Math.max(0, (contentH - viewH) / 2);
+          } else {
+            wrap.scrollLeft = 0;
+            wrap.scrollTop = 0;
+          }
+          wrap.dataset.scrollKey = scrollKey;
+        }
+        gfxDebug.push('W=' + viewW.toFixed(1) + ';H=' + viewH.toFixed(1));
+        gfxDebug.push('content=' + contentW + 'x' + contentH + ';scroll=' + (needScroll ? 1 : 0));
         gfxDebug.push('bw=' + bw.toFixed(3) + ';bh=' + bh.toFixed(3));
         gfxDebug.push('cell_pref=' + cellPref.toFixed(3) + ';cell=' + cell.toFixed(3));
         gfxDebug.push('occupy=' + [oL, oR, oU, oD].map(function (x) { return x.toFixed(2); }).join(','));
