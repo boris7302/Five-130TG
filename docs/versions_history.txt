@@ -47,4 +47,4 @@ app.rev=042
 039  c43f89c  Footer copyright: Boris Bulatov (Boris Games), 2026 + version/rev.
 040  6a94b1c  Header: mobile clock row; desktop score/stones labels (очки/камни).
 041  32dc037  Center stat labels; desktop ~2× width shell (1040px); rev.041.
-042  (pending)  Desktop-only fullscreen; ui-desktop layout; sync index.html; rev.042.
+042  f47e893  Desktop-only fullscreen; ui-desktop layout; sync index.html; rev.042.
