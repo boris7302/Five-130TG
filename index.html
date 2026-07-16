@@ -584,11 +584,25 @@
         }
       }
 
+      /** Как Linux partyScoreDisplay: партия + очки за ходы текущей игры. */
+      function partyScoreDisplay(player) {
+        var m = match();
+        var r = round();
+        if (!m) return 0;
+        var total = m.scores[player] || 0;
+        // После settleRound очки уже в match.scores — не суммировать повторно.
+        if (r && !pendingSettle && !m.matchOver) {
+          total += (r.moveScores && r.moveScores[player]) || 0;
+        }
+        return total;
+      }
+
       function updateStatus() {
         var m = match();
         var r = round();
         if (!m || !r) return;
-        scoreEl.textContent = m.scores[0] + ' : ' + m.scores[1];
+        // Счёт в шапке = накопленная партия + кратные 5 за ходы текущей игры (как Five-130 TUI).
+        scoreEl.textContent = partyScoreDisplay(E.HUMAN) + ' : ' + partyScoreDisplay(E.AI);
         setStoneCount(stonesYou, r.hands[E.HUMAN].length);
         setStoneCount(stonesAi, r.hands[E.AI].length);
         var bits = [];
@@ -597,6 +611,13 @@
         else if (r.roundOver) bits.push('Игра окончена · ' + (r.message || r.endReason || ''));
         else bits.push(r.currentPlayer === E.HUMAN ? 'Ваш ход' : 'Ход компьютера');
         if (r.message && !pendingSettle) bits.push(r.message);
+        if (!pendingSettle && !m.matchOver) {
+          bits.push('ходы ' + (r.moveScores[0] || 0) + ':' + (r.moveScores[1] || 0));
+          if (r.board && r.board.hasCenter && E.scoringEndsPipSum) {
+            var ends = E.scoringEndsPipSum(r.board);
+            bits.push('концы ' + ends);
+          }
+        }
         if (m.statusLine && !m.matchOver) bits.push(m.statusLine);
         if (r.board && r.board.hasCenter) {
           var anchor = E.centerLabel(r.board);

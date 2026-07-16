@@ -509,7 +509,7 @@
     if (pip > 0 && pip % 5 === 0) {
       round.moveScores[round.currentPlayer] += pip;
       log += ' [+' + pip + ']';
-      round.message = 'За ход +' + pip;
+      round.message = 'За ход +' + pip + ' (сумма концов ' + pip + ')';
     } else round.message = '';
     round.actionLog.push({ player: round.currentPlayer, text: log });
 
