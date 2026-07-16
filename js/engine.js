@@ -890,21 +890,19 @@
           if (bendCCW && extent > maxStraight && i > 0) {
             mode = 'side';
             meta[metaKey] = i;
-            // Стык Turn к боковой половине open-pip предшественника (§5.4/§5.5).
+            // L-стык: docs/BEND_TURN_GEOMETRY.md (не «T» на торце).
+            const turnHoriz = !p.tile.isDouble;
+            const turnSz = sz(turnHoriz);
             if (prevHoriz) {
-              // Предшественник — гориз. дубль: хвост сбоку на том же Y.
+              // После гориз. дубля на вертикали — сбоку на том же Y.
               cursorY = cursorY;
-              sideHalf = prevW / 2;
             } else {
-              // Вертикальный ординар: open-половина снаружи; Turn на её уровне.
-              const openHalfCY = goingUp
-                ? (cursorY - prevH / 4)
-                : (cursorY + prevH / 4);
+              // Flush: up — верхние края, down — нижние края.
               cursorY = goingUp
-                ? (openHalfCY - HALF_BODY)
-                : (openHalfCY + HALF_BODY);
-              sideHalf = prevW / 2;
+                ? (cursorY - prevH / 2 + turnSz.h / 2)
+                : (cursorY + prevH / 2 - turnSz.h / 2);
             }
+            sideHalf = prevW / 2;
             cursorX = sx;
             // fall through — текущий камень уже боковой
           } else {
