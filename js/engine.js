@@ -25,6 +25,16 @@
     if (lo > hi) { const t = lo; lo = hi; hi = t; }
     return { lo: lo, hi: hi, isDouble: lo === hi, pipSum: lo + hi, label: lo + '|' + hi };
   }
+  /** Дубль по pip (lo===hi). Не полагаться только на флаг isDouble — он может пропасть при клоне/KV. */
+  function tileIsDouble(t) {
+    return !!(t && t.lo === t.hi);
+  }
+  /** Нормализация камня: всегда восстанавливает isDouble/pipSum/label. */
+  function ensureTile(t) {
+    if (!t) return t;
+    if (t.isDouble === (t.lo === t.hi) && t.pipSum === t.lo + t.hi && t.label) return t;
+    return Tile(t.lo, t.hi);
+  }
   function tileEq(a, b) { return a && b && a.lo === b.lo && a.hi === b.hi; }
   function allTiles() {
     const out = [];
@@ -172,9 +182,9 @@
   function isDoubleAtEnd(b, end) {
     const a = arm(b, end);
     if (!a.active) return false;
-    if (a.tiles.length) return a.tiles[a.tiles.length - 1].tile.isDouble;
-    if (end === EndId.MainLeft || end === EndId.MainRight) return b.center.tile.isDouble;
-    return b.hasSpinner && spinnerTile(b).tile.isDouble;
+    if (a.tiles.length) return tileIsDouble(a.tiles[a.tiles.length - 1].tile);
+    if (end === EndId.MainLeft || end === EndId.MainRight) return tileIsDouble(b.center.tile);
+    return b.hasSpinner && tileIsDouble(spinnerTile(b).tile);
   }
   function canConnect(b, tile, end) {
     if (!b.hasCenter) return false;
@@ -183,12 +193,13 @@
     return tile.lo === pip || tile.hi === pip;
   }
   function placeFirst(b, tile, player) {
+    tile = ensureTile(tile);
     b.center = { tile: tile, player: player };
     b.hasCenter = true;
     b.hasSpinner = false;
     b.spinnerAtCenter = false;
     b.mainLineDoubles = [];
-    if (tile.isDouble) b.mainLineDoubles.push({ atCenter: true, arm: EndId.MainLeft, index: 0 });
+    if (tileIsDouble(tile)) b.mainLineDoubles.push({ atCenter: true, arm: EndId.MainLeft, index: 0 });
     b.mainLeft.active = true;
     b.mainRight.active = true;
     b.branchUp.active = false;
@@ -196,9 +207,10 @@
     updateBranches(b);
   }
   function placeOnEnd(b, tile, end, player) {
+    tile = ensureTile(tile);
     const a = arm(b, end);
     a.tiles.push({ tile: tile, player: player });
-    if (tile.isDouble && (end === EndId.MainLeft || end === EndId.MainRight)) {
+    if (tileIsDouble(tile) && (end === EndId.MainLeft || end === EndId.MainRight)) {
       b.mainLineDoubles.push({ atCenter: false, arm: end, index: a.tiles.length - 1 });
     }
     updateBranches(b);
@@ -789,8 +801,12 @@
     const maxUp = opts.maxVertUp != null ? opts.maxVertUp : 1e9;
     const maxDown = opts.maxVertDown != null ? opts.maxVertDown : 1e9;
 
-    function orientMain(tile) { return !tile.isDouble; }
-    function orientBranch(tile) { return !!tile.isDouble; }
+    // Ориентация — ТОЛЬКО по lo===hi (см. docs/TILE_ORIENTATION.md).
+    // horiz=true → камень лежит плашмя (шире, чем выше).
+    // Главная / гориз. хвост: дубль ВЕРТИКАЛЬНО (horiz=false), ординар горизонтально.
+    // Ветки up/down (вертикальная ось): дубль ГОРИЗОНТАЛЬНО (horiz=true), ординар вертикально.
+    function orientMain(tile) { return !tileIsDouble(tile); }
+    function orientVertAxis(tile) { return tileIsDouble(tile); }
     function otherPip(tile, inward) {
       return tile.lo === inward ? tile.hi : tile.lo;
     }
@@ -811,7 +827,7 @@
       });
     }
 
-    const cTile = board.center.tile;
+    const cTile = ensureTile(board.center.tile);
     const cHoriz = orientMain(cTile);
     const cSz = sz(cHoriz);
     pushTile(cTile, board.center.player, 0, 0, cHoriz, {
@@ -824,14 +840,15 @@
     let prevOpen = cTile.lo;
     for (let i = 0; i < board.mainLeft.tiles.length; i++) {
       const p = board.mainLeft.tiles[i];
-      const h = orientMain(p.tile);
+      const tile = ensureTile(p.tile);
+      const h = orientMain(tile);
       const s = sz(h);
       cursor = cursor - prevHalf - GAP - s.w / 2;
       const inward = prevOpen;
-      const outward = otherPip(p.tile, inward);
+      const outward = otherPip(tile, inward);
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainLeft && board.spinnerIndex === i;
-      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
+      pushTile(tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
       prevOpen = outward;
       prevHalf = s.w / 2;
     }
@@ -841,14 +858,15 @@
     prevOpen = cTile.hi;
     for (let i = 0; i < board.mainRight.tiles.length; i++) {
       const p = board.mainRight.tiles[i];
-      const h = orientMain(p.tile);
+      const tile = ensureTile(p.tile);
+      const h = orientMain(tile);
       const s = sz(h);
       cursor = cursor + prevHalf + GAP + s.w / 2;
       const inward = prevOpen;
-      const outward = otherPip(p.tile, inward);
+      const outward = otherPip(tile, inward);
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainRight && board.spinnerIndex === i;
-      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
+      pushTile(tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
       prevOpen = outward;
       prevHalf = s.w / 2;
     }
@@ -898,10 +916,12 @@
 
       for (let i = 0; i < tiles.length; i++) {
         const p = tiles[i];
+        const tile = ensureTile(p.tile);
+        const dbl = tileIsDouble(tile);
 
         if (mode === 'vert') {
-          // На вертикальной оси: дубль всегда горизонтальный.
-          const horiz = !!p.tile.isDouble;
+          // Вертикальная ось (up И down одинаково): дубль ГОРИЗОНТАЛЬНО.
+          const horiz = orientVertAxis(tile); // === dbl
           const s = sz(horiz);
           const nextY = goingUp
             ? cursorY - prevHalfV - GAP - s.h / 2
@@ -912,7 +932,7 @@
             mode = 'side';
             meta[metaKey] = i;
             // L-стык: docs/BEND_TURN_GEOMETRY.md (не «T» на торце).
-            const turnHoriz = !p.tile.isDouble;
+            const turnHoriz = orientMain(tile); // на гориз. хвосте: ординар H, дубль V
             const turnSz = sz(turnHoriz);
             if (prevHoriz) {
               // После гориз. дубля на вертикали — сбоку на том же Y.
@@ -929,14 +949,14 @@
           } else {
             cursorY = nextY;
             const inward = prevOpenLocal;
-            const outward = otherPip(p.tile, inward);
-            if (!horiz) {
+            const outward = otherPip(tile, inward);
+            if (!dbl) {
               // вертикальный ординар: a=top, b=bottom
-              if (goingUp) pushTile(p.tile, p.player, sx, cursorY, false, {}, outward, inward);
-              else pushTile(p.tile, p.player, sx, cursorY, false, {}, inward, outward);
+              if (goingUp) pushTile(tile, p.player, sx, cursorY, false, {}, outward, inward);
+              else pushTile(tile, p.player, sx, cursorY, false, {}, inward, outward);
             } else {
-              // гориз. дубль на вертикальной оси: a=left, b=right (оба lo)
-              pushTile(p.tile, p.player, sx, cursorY, true, {}, p.tile.lo, p.tile.hi);
+              // ОБЯЗАТЕЛЬНО horiz=true на up и на down (TILE_ORIENTATION.md §2).
+              pushTile(tile, p.player, sx, cursorY, true, {}, tile.lo, tile.hi);
             }
             prevOpenLocal = outward;
             prevHalfV = s.h / 2;
@@ -948,22 +968,21 @@
         }
 
         // mode === 'side': горизонтальный хвост (один загиб, без второго).
-        // Ось горизонтальная §2.2: ординар горизонтально, дубль вертикально.
-        const horiz = !p.tile.isDouble;
+        // Ось горизонтальная: ординар горизонтально, дубль вертикально.
+        const horiz = orientMain(tile);
         const s = sz(horiz);
         cursorX = cursorX + sideSign * (sideHalf + GAP + s.w / 2);
         const inward = prevOpenLocal;
-        const outward = otherPip(p.tile, inward);
-        if (horiz) {
-          // ординар влево: left=outward,right=inward; вправо: left=inward,right=outward
+        const outward = otherPip(tile, inward);
+        if (!dbl) {
           if (sideSign < 0) {
-            pushTile(p.tile, p.player, cursorX, cursorY, true, { bent: true }, outward, inward);
+            pushTile(tile, p.player, cursorX, cursorY, true, { bent: true }, outward, inward);
           } else {
-            pushTile(p.tile, p.player, cursorX, cursorY, true, { bent: true }, inward, outward);
+            pushTile(tile, p.player, cursorX, cursorY, true, { bent: true }, inward, outward);
           }
         } else {
           // вертикальный дубль на гориз. хвосте
-          pushTile(p.tile, p.player, cursorX, cursorY, false, { bent: true }, p.tile.lo, p.tile.hi);
+          pushTile(tile, p.player, cursorX, cursorY, false, { bent: true }, tile.lo, tile.hi);
         }
         prevOpenLocal = outward;
         sideHalf = s.w / 2;
@@ -1040,6 +1059,8 @@
     EndId: EndId,
     EndName: EndName,
     Tile: Tile,
+    tileIsDouble: tileIsDouble,
+    ensureTile: ensureTile,
     createMatch: createMatch,
     startRound: startRound,
     legalMoves: legalMoves,
