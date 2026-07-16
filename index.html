@@ -200,31 +200,39 @@
     }
 
     /* Modal */
-    #modal, #debug-modal, #profile-modal, #spinner-modal {
+    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
-    #modal.open, #debug-modal.open, #profile-modal.open, #spinner-modal.open { display: flex; }
-    #modal .card, #debug-modal .card, #profile-modal .card, #spinner-modal .card {
+    #modal.open, #debug-modal.open, #profile-modal.open, #spinner-modal.open,
+    #help-modal.open, #help-rules-modal.open, #help-usage-modal.open { display: flex; }
+    #modal .card, #debug-modal .card, #profile-modal .card, #spinner-modal .card,
+    #help-modal .card, #help-rules-modal .card, #help-usage-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
-    #modal h2, #debug-modal h2, #profile-modal h2, #spinner-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
-    #modal .lines, #debug-modal .lines, #profile-modal .lines, #spinner-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
-    #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong, #spinner-modal .lines strong { color: var(--text); font-weight: 700; }
-    #modal .btns, #debug-modal .btns, #profile-modal .btns, #spinner-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
-    #modal .btns button, #debug-modal .btns button, #profile-modal .btns button, #spinner-modal .btns button {
+    #help-rules-modal .card, #help-usage-modal .card { width: min(520px, 100%); }
+    #modal h2, #debug-modal h2, #profile-modal h2, #spinner-modal h2,
+    #help-modal h2, #help-rules-modal h2, #help-usage-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #modal .lines, #debug-modal .lines, #profile-modal .lines, #spinner-modal .lines,
+    #help-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong, #spinner-modal .lines strong,
+    #help-modal .lines strong { color: var(--text); font-weight: 700; }
+    #modal .btns, #debug-modal .btns, #profile-modal .btns, #spinner-modal .btns,
+    #help-modal .btns, #help-rules-modal .btns, #help-usage-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #modal .btns button, #debug-modal .btns button, #profile-modal .btns button, #spinner-modal .btns button,
+    #help-modal .btns button, #help-rules-modal .btns button, #help-usage-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
-    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame, #spinner-apply { background: var(--accent); color: #1a1408; }
-    #debug-close, #profile-cancel, #spinner-cancel { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
+    #modal-continue, #debug-copy, #debug-download, #profile-apply, #profile-newgame, #spinner-apply, #help-rules-btn, #help-usage-btn { background: var(--accent); color: #1a1408; }
+    #debug-close, #profile-cancel, #spinner-cancel, #help-cancel, #help-rules-close, #help-usage-close { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
 
-    #profile-fab, #spinner-fab {
+    #profile-fab, #spinner-fab, #help-fab {
       position: fixed; right: 0;
       z-index: 40; transform: translateY(-50%);
-      width: 52px; min-height: 100px; padding: 10px 6px;
+      width: 52px; min-height: 88px; padding: 10px 6px;
       border-radius: 12px 0 0 12px;
       border: 1px solid rgba(245,240,230,.4);
       border-right: none;
@@ -235,9 +243,10 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 6px;
     }
-    #profile-fab { top: 58%; }
-    #spinner-fab { top: 32%; }
-    #profile-fab .pf-lab, #spinner-fab .pf-lab {
+    #help-fab { top: 16%; }
+    #spinner-fab { top: 38%; }
+    #profile-fab { top: 62%; }
+    #profile-fab .pf-lab, #spinner-fab .pf-lab, #help-fab .pf-lab {
       writing-mode: vertical-rl;
       text-orientation: mixed;
       transform: rotate(180deg);
@@ -246,20 +255,65 @@
       font-weight: 800;
       white-space: nowrap;
     }
-    #profile-fab .pid, #spinner-fab .pid {
+    #profile-fab .pid, #spinner-fab .pid, #help-fab .pid {
       display: block; font-size: 0.95rem; color: var(--accent); font-weight: 900;
     }
+
+    #modal .result-headline {
+      text-align: center;
+      margin: 12px 0 4px;
+      line-height: 1.15;
+      letter-spacing: 0.04em;
+    }
+    #modal .result-headline.win {
+      color: #ff1744;
+      font-size: 2.15rem;
+      font-weight: 900;
+      text-shadow: 0 0 12px rgba(255, 23, 68, 0.55), 0 2px 0 rgba(0,0,0,.35);
+    }
+    #modal .result-headline.lose {
+      color: #90caf9;
+      font-size: 1.55rem;
+      font-weight: 900;
+    }
+    #modal .result-headline.draw {
+      color: #ffd24a;
+      font-size: 1.75rem;
+      font-weight: 900;
+    }
+
+    #help-rules-modal .card, #help-usage-modal .card {
+      max-height: min(86vh, 720px);
+      display: flex; flex-direction: column;
+    }
+    #help-rules-body, #help-usage-body {
+      overflow: auto;
+      max-height: min(58vh, 520px);
+      padding-right: 4px;
+      font-size: 0.86rem;
+      line-height: 1.45;
+      color: var(--muted);
+      text-align: left;
+    }
+    #help-rules-body h3, #help-usage-body h3 {
+      color: var(--text); font-size: 0.95rem; margin: 12px 0 6px;
+    }
+    #help-rules-body ul, #help-usage-body ul { margin: 0 0 8px 1.1em; padding: 0; }
+    #help-rules-body li, #help-usage-body li { margin: 0 0 4px; }
+    #help-menu-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
+
     #profile-modal .profile-list, #spinner-modal .spinner-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
-    #profile-modal .profile-opt, #spinner-modal .spinner-opt {
+    #profile-modal .profile-opt, #spinner-modal .spinner-opt, #help-modal .profile-opt {
       display: flex; gap: 10px; align-items: flex-start;
       text-align: left; padding: 10px 12px; border-radius: 12px;
       border: 1px solid rgba(245,240,230,.3); background: rgba(0,0,0,.18);
       color: var(--text); cursor: pointer; font-size: 0.85rem;
+      width: 100%;
     }
     #profile-modal .profile-opt.selected, #spinner-modal .spinner-opt.selected {
       border-color: var(--accent); background: rgba(201,162,39,.18);
     }
-    #profile-modal .profile-opt .tag, #spinner-modal .spinner-opt .tag {
+    #profile-modal .profile-opt .tag, #spinner-modal .spinner-opt .tag, #help-modal .profile-opt .tag {
       flex: 0 0 52px; font-weight: 900; font-size: 0.85rem; color: var(--accent);
     }
 
@@ -318,6 +372,7 @@
       <div id="score">0 : 0</div>
     </div>
   </header>
+  <button type="button" id="help-fab" title="Помощь"><span class="pf-lab">Помощь</span><span class="pid" id="help-fab-id">?</span></button>
   <button type="button" id="spinner-fab" title="Стиль якоря (спиннер)"><span class="pf-lab">Якорь</span><span class="pid" id="spinner-fab-id">amber</span></button>
   <button type="button" id="profile-fab" title="Профиль раскладки"><span class="pf-lab">Профиль</span><span class="pid" id="profile-fab-id">A</span></button>
   <div id="status">Загрузка…</div>
@@ -372,6 +427,40 @@
       <div class="btns">
         <button type="button" id="spinner-apply">Применить</button>
         <button type="button" id="spinner-cancel">Отмена</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="help-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Помощь</h2>
+      <div class="lines">Выберите раздел справки.</div>
+      <div id="help-menu-list">
+        <button type="button" class="profile-opt" id="help-rules-btn"><span class="tag">1</span><span>Правила игры Пятак-130</span></button>
+        <button type="button" class="profile-opt" id="help-usage-btn"><span class="tag">2</span><span>Правила пользования приложением</span></button>
+      </div>
+      <div class="btns">
+        <button type="button" id="help-cancel">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="help-rules-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Правила игры</h2>
+      <div id="help-rules-body"></div>
+      <div class="btns">
+        <button type="button" id="help-rules-close">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="help-usage-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Пользование приложением</h2>
+      <div id="help-usage-body"></div>
+      <div class="btns">
+        <button type="button" id="help-usage-close">Закрыть</button>
       </div>
     </div>
   </div>
@@ -918,6 +1007,19 @@
           ? 'Итоги партии'
           : (r.endReason === 'fish' ? 'Итоги игры — рыба' : 'Итоги игры');
         var lines = [];
+        if (m.matchOver) {
+          var st0 = m.statusLine || 'Партия окончена';
+          var low0 = String(st0).toLowerCase();
+          if (low0.indexOf('победа') >= 0 && low0.indexOf('компьютер') < 0) {
+            lines.push('<div class="result-headline win">Победа!</div>');
+          } else if (low0.indexOf('компьютер') >= 0 || low0.indexOf('проигр') >= 0) {
+            lines.push('<div class="result-headline lose">' + st0 + '</div>');
+          } else if (low0.indexOf('ничья') >= 0) {
+            lines.push('<div class="result-headline draw">Ничья!</div>');
+          } else {
+            lines.push('<div class="result-headline"><strong>' + st0 + '</strong></div>');
+          }
+        }
         if (r.endReason === 'fish') {
           lines.push('<div style="color:#ffd24a;font-weight:900;margin-bottom:8px">' +
             'Игра завершилась рыбой: ходов больше нет (рынок пуст).</div>');
@@ -938,9 +1040,7 @@
         }
         lines.push('<div>Счёт партии: <strong>' + m.scores[0] + ' : ' + m.scores[1] + '</strong></div>');
         lines.push('<div>Сыграно игр в партии: <strong>' + m.gameIndex + '</strong></div>');
-        if (m.matchOver) {
-          lines.push('<div><strong>' + (m.statusLine || 'Партия окончена') + '</strong></div>');
-        } else {
+        if (!m.matchOver) {
           lines.push('<div>Первым в следующей игре: <strong>' +
             nextStarterLabel(m, r, delta) + '</strong></div>');
         }
@@ -1558,6 +1658,85 @@
       };
       document.getElementById('spinner-apply').onclick = function () {
         setSpinnerStyle(spinnerPick);
+      };
+
+      var HELP_RULES_HTML =
+        '<p>Источник: Five-130 Linux (<code>rules_125.txt</code> + <code>rules_130.txt</code>). Кратко для Mini App:</p>' +
+        '<h3>1. Комплект и раздача</h3>' +
+        '<ul><li>28 камней 0|0…6|6; каждому по 7; рынок 14.</li>' +
+        '<li><strong>Партия</strong> — серия игр до победы Five-130; <strong>игра</strong> — одна раздача.</li></ul>' +
+        '<h3>2. Первый камень</h3>' +
+        '<ul><li>Первая игра: автооткрытие по приоритету (дубли 1|1…5|5, затем ординары из списка).</li>' +
+        '<li><strong>0|0 и 6|6 нельзя</strong> ставить первым камнем любой игры (§2.2b).</li>' +
+        '<li>Следующие игры: начинает победитель прошлой или автор рыбы (§7.3).</li></ul>' +
+        '<h3>3. Ход и спиннер</h3>' +
+        '<ul><li>Камень стыкуется по совпадающему pip.</li>' +
+        '<li>Спиннер — первый <strong>закрытый</strong> дубль на главной линии; после этого — ветки вверх/вниз.</li>' +
+        '<li>§2.8: несколько дублей на разные концы — один составной ход.</li></ul>' +
+        '<h3>4. Рынок</h3>' +
+        '<ul><li>Только если нет легального хода; брать по одному, пока не появится ход или рынок не опустеет.</li>' +
+        '<li>Пропуск хода запрещён.</li></ul>' +
+        '<h3>5. Очки за ход</h3>' +
+        '<ul><li>Сумма открытых концов кратна 5 → начисление. Дубль на конце считается ×2.</li>' +
+        '<li>Первый камень: особые правила (ординар m+n; 5|5 → 10; прочие дубли 1–4 → 0).</li></ul>' +
+        '<h3>6. Конец игры и остаток</h3>' +
+        '<ul><li>Пустая рука или рыба (оба без хода, рынок пуст).</li>' +
+        '<li>Остаток: pip×5; один 0|0 → −25; один 6|6 → −50; оба → −75.</li></ul>' +
+        '<h3>7. Победа партии (Five-130)</h3>' +
+        '<ul><li>Порог 125/130 с особыми случаями; отражение: 235 − очки, если &gt; 130.</li>' +
+        '<li>10 отражений суммарно → ничья; равные ≥125 → ничья; 125 против 130 → побеждает 125.</li></ul>' +
+        '<p style="opacity:.85">Полные тексты: docs/RULES_125.txt, docs/RULES_130.txt, docs/RULES_FIVE130TG.md</p>';
+
+      var HELP_USAGE_HTML =
+        '<h3>Ход одним нажатием</h3>' +
+        '<ul><li>В блоке «Ходы» нажмите кнопку с вертикальным камнем и цветной стрелкой направления.</li>' +
+        '<li>Составные ходы дублей (§2.8) — отдельной строкой (например 4|4+5|5 → ←+→).</li>' +
+        '<li>Стрелки: ↑ синяя, ↓ красная, ← фиолетовая, → жёлтая.</li></ul>' +
+        '<h3>Базар</h3>' +
+        '<ul><li>Кнопка «Базар» активна, только когда нет легального хода (жёлтое предупреждение).</li>' +
+        '<li>В истории и статусе видно, кто сколько камней взял с рынка.</li></ul>' +
+        '<h3>Боковые вкладки</h3>' +
+        '<ul><li><strong>Помощь</strong> — эта справка.</li>' +
+        '<li><strong>Якорь</strong> — стиль спиннера и последнего хода: rust / amber / slate / ink.</li>' +
+        '<li><strong>Профиль</strong> — раскладка A–E (загиб/масштаб камней).</li></ul>' +
+        '<h3>Шапка</h3>' +
+        '<ul><li>Название и версия, «Вы vs Компьютер», часы YY/MM/DD HH:MM:SS, день недели, счёт камней и очков.</li></ul>' +
+        '<h3>Стол</h3>' +
+        '<ul><li>Закрытый спиннер подсвечивается по выбранному стилю якоря.</li>' +
+        '<li>Последний ход противника — спокойная рамка + цветные точки (не neon).</li>' +
+        '<li>На мобильном стол можно прокручивать/панорамировать, если камни не влезают.</li></ul>' +
+        '<h3>Низ экрана</h3>' +
+        '<ul><li>Новая / Сохранить / Партии / Отладка — партия MatchStore (ключ=значение).</li>' +
+        '<li>После игры — окно итогов: продолжить или сохранить; новая игра не стартует сама.</li></ul>' +
+        '<h3>Настройки cfg</h3>' +
+        '<ul><li>Файл <code>cfg/five130tg.cfg</code>: цвета, часы, профили раскладки, стили якоря.</li>' +
+        '<li>Выбор якоря/профиля запоминается в localStorage браузера.</li></ul>';
+
+      function openHelpMenu() {
+        document.getElementById('help-modal').classList.add('open');
+      }
+      function openHelpRules() {
+        document.getElementById('help-modal').classList.remove('open');
+        document.getElementById('help-rules-body').innerHTML = HELP_RULES_HTML;
+        document.getElementById('help-rules-modal').classList.add('open');
+      }
+      function openHelpUsage() {
+        document.getElementById('help-modal').classList.remove('open');
+        document.getElementById('help-usage-body').innerHTML = HELP_USAGE_HTML;
+        document.getElementById('help-usage-modal').classList.add('open');
+      }
+
+      document.getElementById('help-fab').onclick = openHelpMenu;
+      document.getElementById('help-cancel').onclick = function () {
+        document.getElementById('help-modal').classList.remove('open');
+      };
+      document.getElementById('help-rules-btn').onclick = openHelpRules;
+      document.getElementById('help-usage-btn').onclick = openHelpUsage;
+      document.getElementById('help-rules-close').onclick = function () {
+        document.getElementById('help-rules-modal').classList.remove('open');
+      };
+      document.getElementById('help-usage-close').onclick = function () {
+        document.getElementById('help-usage-modal').classList.remove('open');
       };
 
       window.addEventListener('resize', paint);
