@@ -156,6 +156,40 @@
     return { match_id: matchId, text: text };
   }
 
+
+  function debugKey(owner) { return 'debug:' + owner + ':last'; }
+
+  /**
+   * Сохранить последний отладочный дамп партии (KV-текст) в IndexedDB.
+   * Это локальная копия на устройстве — не публичная HTTP-ссылка.
+   * @param {string} text Дамп Five130TG-Debug/1
+   * @return {Promise<{owner:string, key:string}>}
+   */
+  async function saveDebugDump(text) {
+    const owner = ownerId();
+    const key = debugKey(owner);
+    const stamped = '# saved=' + (new Date()).toISOString() + '\n' + String(text || '');
+    await idbSet(key, stamped);
+    return { owner: owner, key: key };
+  }
+
+  /** @return {Promise<string|null>} последний debug-дамп или null */
+  async function loadDebugDump() {
+    const owner = ownerId();
+    const text = await idbGet(debugKey(owner));
+    return text || null;
+  }
+
+  /** Скачать последний debug из MatchStore как .txt */
+  async function exportDebugTxt() {
+    const text = await loadDebugDump();
+    if (!text) return null;
+    return {
+      filename: 'five130tg_debug_last.txt',
+      text: text,
+    };
+  }
+
   global.Five130MatchStore = {
     ownerId: ownerId,
     listMatches: listMatches,
@@ -164,6 +198,9 @@
     deleteMatch: deleteMatch,
     exportMatchTxt: exportMatchTxt,
     saveStubFromUi: saveStubFromUi,
-    _keys: { indexKey: indexKey, matchKey: matchKey },
+    saveDebugDump: saveDebugDump,
+    loadDebugDump: loadDebugDump,
+    exportDebugTxt: exportDebugTxt,
+    _keys: { indexKey: indexKey, matchKey: matchKey, debugKey: debugKey },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

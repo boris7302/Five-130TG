@@ -92,9 +92,11 @@
       flex: 1; position: relative;
     }
     .domino .half + .half { border-top: 1.5px solid rgba(139,105,20,.45); }
+    .domino .half { min-height: 0; }
     .domino .pip {
-      position: absolute; width: 5px; height: 5px; border-radius: 50%;
+      position: absolute; width: 6px; height: 6px; border-radius: 50%;
       background: var(--pip-human); transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 0.5px rgba(0,0,0,.15);
     }
     .move-btn {
       display: inline-flex; flex-direction: column; align-items: center;
@@ -127,25 +129,26 @@
     }
 
     /* Modal */
-    #modal {
+    #modal, #debug-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
-    #modal.open { display: flex; }
-    #modal .card {
+    #modal.open, #debug-modal.open { display: flex; }
+    #modal .card, #debug-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
-    #modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
-    #modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
-    #modal .lines strong { color: var(--text); font-weight: 700; }
-    #modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
-    #modal .btns button {
+    #modal h2, #debug-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #modal .lines, #debug-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #modal .lines strong, #debug-modal .lines strong { color: var(--text); font-weight: 700; }
+    #modal .btns, #debug-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #modal .btns button, #debug-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
-    #modal-continue { background: var(--accent); color: #1a1408; }
+    #modal-continue, #debug-copy, #debug-download { background: var(--accent); color: #1a1408; }
+    #debug-close { background: transparent; color: var(--text); border: 1px solid rgba(245,240,230,.4); }
     #modal-save {
       background: transparent; color: var(--text);
       border: 1px solid rgba(245,240,230,.4);
@@ -192,6 +195,18 @@
   </div>
   <div id="store-status">MatchStore: …</div>
   <div id="note">Движок JS (порт C++) · v0.001 · хранение ключ=значение</div>
+
+  <div id="debug-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Отладка партии</h2>
+      <div class="lines" id="debug-modal-body"></div>
+      <div class="btns">
+        <button type="button" id="debug-copy">Копировать ссылку</button>
+        <button type="button" id="debug-download">Скачать .txt</button>
+        <button type="button" id="debug-close">Закрыть</button>
+      </div>
+    </div>
+  </div>
 
   <div id="modal" role="dialog" aria-modal="true">
     <div class="card">
@@ -403,8 +418,8 @@
         var bh = Math.max(0.01, maxY - minY);
         var fit = Math.min((W * 0.92) / bw, (H * 0.92) / bh);
         // Старт: один/два камня — вдвое меньше авто-fit; плюс жёсткий потолок.
-        var scale = placed.length <= 2 ? 0.275 : 0.55;
-        var cell = Math.min(fit * scale, Math.min(W, H) * 0.12, 40);
+        var scale = placed.length <= 2 ? cfgBoard.scaleStart : cfgBoard.scaleNormal;
+        var cell = Math.min(fit * scale, Math.min(W, H) * 0.12, cfgBoard.cellMaxPx);
         var ox = W / 2 - ((minX + maxX) / 2) * cell;
         var oy = H / 2 - ((minY + maxY) / 2) * cell;
         gfxDebug.push('W=' + W.toFixed(1) + ';H=' + H.toFixed(1));
@@ -423,7 +438,7 @@
 
       function setStoneCount(el, n) {
         el.textContent = String(n);
-        if (n > 0 && n <= 2) el.classList.add('low');
+        if (n > 0 && n <= cfgBoard.stonesLow) el.classList.add('low');
         else el.classList.remove('low');
       }
 
@@ -643,25 +658,132 @@
         });
       }
 
-      function downloadDebug() {
+      var lastDebugText = '';
+      var lastDebugDataUrl = '';
+      var cfgBoard = {
+        cellMaxPx: 40,
+        scaleNormal: 0.55,
+        scaleStart: 0.275,
+        stonesLow: 2,
+        handW: 34,
+        handH: 68
+      };
+
+      function parseCfg(text) {
+        var map = {};
+        String(text || '').split(/\r?\n/).forEach(function (line) {
+          line = line.replace(/#.*$/, '').trim();
+          if (!line || line.indexOf('=') < 0) return;
+          var i = line.indexOf('=');
+          map[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+        });
+        return map;
+      }
+
+      function applyCfg(map) {
+        var root = document.documentElement.style;
+        function set(cssVar, key) {
+          if (map[key]) root.setProperty(cssVar, map[key]);
+        }
+        set('--bg', 'color.bg');
+        set('--felt', 'color.felt');
+        set('--text', 'color.text');
+        set('--muted', 'color.muted');
+        set('--accent', 'color.accent');
+        set('--arrow', 'color.arrow');
+        set('--warn', 'color.warn');
+        set('--tile-face', 'color.tile.face');
+        set('--tile-ai', 'color.tile.ai');
+        set('--pip-human', 'color.pip.human');
+        set('--pip-ai', 'color.pip.ai');
+        set('--font-ui', 'font.ui');
+        if (map['board.cell.max_px']) cfgBoard.cellMaxPx = parseFloat(map['board.cell.max_px']) || cfgBoard.cellMaxPx;
+        if (map['board.cell.scale.normal']) cfgBoard.scaleNormal = parseFloat(map['board.cell.scale.normal']) || cfgBoard.scaleNormal;
+        if (map['board.cell.scale.start']) cfgBoard.scaleStart = parseFloat(map['board.cell.scale.start']) || cfgBoard.scaleStart;
+        if (map['ui.stones.low_threshold']) cfgBoard.stonesLow = parseInt(map['ui.stones.low_threshold'], 10) || cfgBoard.stonesLow;
+        if (map['ui.hand.tile_w_px']) cfgBoard.handW = parseInt(map['ui.hand.tile_w_px'], 10) || cfgBoard.handW;
+        if (map['ui.hand.tile_h_px']) cfgBoard.handH = parseInt(map['ui.hand.tile_h_px'], 10) || cfgBoard.handH;
+        root.setProperty('--hand-w', cfgBoard.handW + 'px');
+        root.setProperty('--hand-h', cfgBoard.handH + 'px');
+      }
+
+      function loadCfg() {
+        var urls = ['cfg/five130tg.cfg', '../cfg/five130tg.cfg'];
+        function tryNext(i) {
+          if (i >= urls.length) return Promise.resolve(null);
+          return fetch(urls[i], { cache: 'no-store' }).then(function (r) {
+            if (!r.ok) throw new Error('cfg ' + r.status);
+            return r.text();
+          }).then(function (t) {
+            applyCfg(parseCfg(t));
+            return t;
+          }).catch(function () { return tryNext(i + 1); });
+        }
+        return tryNext(0);
+      }
+
+      function buildDebugText() {
         var m = match();
-        if (!m || !E.buildDebugDump) return;
+        if (!m || !E.buildDebugDump) return '';
         var extra = {};
         gfxDebug.forEach(function (line, i) { extra['gfx.' + i] = line; });
         extra['ui_pending_settle'] = pendingSettle ? 1 : 0;
         extra['viewport'] = wrap.getBoundingClientRect().width + 'x' +
           wrap.getBoundingClientRect().height;
-        var text = E.buildDebugDump(m, extra);
+        return E.buildDebugDump(m, extra);
+      }
+
+      function toDataUrl(text) {
+        // data-URL — «ссылка», которую можно вставить в чат (MatchStore сам по себе не HTTP).
+        try {
+          return 'data:text/plain;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(text)));
+        } catch (e) {
+          return 'data:text/plain;charset=utf-8,' + encodeURIComponent(text);
+        }
+      }
+
+      function triggerDownload(text, filename) {
         var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
         var a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = 'five130tg_debug_v' + APP_VER + '_' + (m.seed || 0) + '.txt';
+        a.download = filename || ('five130tg_debug_v' + APP_VER + '.txt');
         document.body.appendChild(a);
         a.click();
-        setTimeout(function () {
-          URL.revokeObjectURL(a.href);
-          a.remove();
-        }, 500);
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      }
+
+      function openDebugModal(text, storeInfo) {
+        lastDebugText = text;
+        lastDebugDataUrl = toDataUrl(text);
+        var body = document.getElementById('debug-modal-body');
+        var lines = [];
+        lines.push('<div>Дамп готов (v' + APP_VER + ', seed=' + (match() && match().seed) + ').</div>');
+        if (storeInfo) {
+          lines.push('<div>MatchStore: сохранено как <strong>' + storeInfo.key +
+            '</strong> (локально на устройстве).</div>');
+        }
+        lines.push('<div><strong>Важно:</strong> MatchStore ≠ публичная ссылка. ' +
+          'Чтобы я увидел партию — скачайте .txt и пришлите в чат, либо нажмите «Копировать ссылку» (data-URL) и вставьте сюда.</div>');
+        body.innerHTML = lines.join('');
+        document.getElementById('debug-modal').classList.add('open');
+      }
+
+      function runDebugExport() {
+        var text = buildDebugText();
+        if (!text) return;
+        var filename = 'five130tg_debug_v' + APP_VER + '_' + ((match() && match().seed) || 0) + '.txt';
+        var storeP = (window.Five130MatchStore && Five130MatchStore.saveDebugDump)
+          ? Five130MatchStore.saveDebugDump(text)
+          : Promise.resolve(null);
+        storeP.then(function (info) {
+          triggerDownload(text, filename);
+          openDebugModal(text, info);
+          if (info) setStoreStatus('Debug → MatchStore · ' + info.key);
+        }).catch(function (err) {
+          triggerDownload(text, filename);
+          openDebugModal(text, null);
+          alert('MatchStore debug: ' + err);
+        });
       }
 
       document.getElementById('bazaar').onclick = function () {
@@ -698,7 +820,27 @@
         });
       };
 
-      document.getElementById('debug').onclick = downloadDebug;
+      document.getElementById('debug').onclick = runDebugExport;
+      document.getElementById('debug-close').onclick = function () {
+        document.getElementById('debug-modal').classList.remove('open');
+      };
+      document.getElementById('debug-download').onclick = function () {
+        if (!lastDebugText) return;
+        triggerDownload(lastDebugText, 'five130tg_debug_v' + APP_VER + '_last.txt');
+      };
+      document.getElementById('debug-copy').onclick = function () {
+        var payload = lastDebugDataUrl || lastDebugText;
+        if (!payload) return;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(payload).then(function () {
+            alert('Ссылка (data-URL) скопирована. Вставьте её в чат Cursor.');
+          }).catch(function () {
+            prompt('Скопируйте ссылку:', payload.slice(0, 2000));
+          });
+        } else {
+          prompt('Скопируйте ссылку:', payload.slice(0, 2000));
+        }
+      };
       document.getElementById('modal-continue').onclick = continueAfterModal;
       document.getElementById('modal-save').onclick = function () {
         doSave().then(function (res) {
@@ -707,7 +849,13 @@
       };
 
       window.addEventListener('resize', paint);
-      newGame();
+      loadCfg().finally(function () {
+        // размеры руки из cfg
+        var style = document.createElement('style');
+        style.textContent = '.domino{width:var(--hand-w,34px);height:var(--hand-h,68px);}';
+        document.head.appendChild(style);
+        newGame();
+      });
     })();
   </script>
 </body>
