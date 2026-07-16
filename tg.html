@@ -925,6 +925,7 @@
       function playMove(mv) {
         var r = round();
         if (!r || r.currentPlayer !== E.HUMAN || pendingSettle) return;
+        r.lastBazaarDraw = null;
         if (!E.applyMove(r, mv)) {
           alert(r.message || 'Недопустимый ход');
           refreshUi();
