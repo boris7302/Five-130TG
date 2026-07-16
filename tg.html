@@ -6,12 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.001 (rev.#040)</title>
+  <title>Пятак-130 v0.001 (rev.#041)</title>
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '040';
+      var APP_HTML_REV = '041';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -115,19 +115,22 @@
       gap: 20px; white-space: nowrap;
     }
     .stat {
-      display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; text-align: center;
     }
     .stat-label {
       font-size: 0.62rem; font-weight: 600; color: var(--muted);
       text-transform: lowercase; letter-spacing: 0.03em; line-height: 1;
+      text-align: center; width: 100%;
     }
     .stat-value {
       font-size: 1.22rem; font-weight: 800;
       font-variant-numeric: tabular-nums; line-height: 1.1;
+      text-align: center;
     }
     .stat-value.score { color: var(--warn); }
     .stat-stones .stones-line {
-      display: flex; align-items: baseline; gap: 10px;
+      display: flex; align-items: baseline; justify-content: center; gap: 10px;
     }
     .stat-stones .stones-player {
       color: var(--muted); font-size: 0.65rem; font-weight: 600;
@@ -163,6 +166,28 @@
       #weekday { font-size: 0.82rem; }
       .stat-value { font-size: 1.02rem; }
       .stat-stones .n.low { font-size: 1.2rem; }
+    }
+    /* Desktop / wide: ~2× phone content width (520 → 1040), centered shell */
+    @media (min-width: 521px) {
+      body {
+        max-width: min(1040px, 100vw);
+        margin-left: auto;
+        margin-right: auto;
+        width: 100%;
+      }
+      header { padding: 10px 16px 8px; gap: 8px 16px; }
+      header h1 { font-size: 1.12rem; }
+      :root { --clock-size: 1.5rem; }
+      #weekday { font-size: 1rem; }
+      #score-wrap { gap: 28px; }
+      .stat-value { font-size: 1.35rem; }
+      .stat-label { font-size: 0.68rem; }
+      .stat-stones .n.low { font-size: 1.55rem; }
+      #status { padding: 0 16px 8px; font-size: 0.88rem; }
+      #board-wrap { margin: 0 16px; min-height: 240px; border-radius: 16px; }
+      #play-area { max-height: 46vh; padding: 6px 16px 0; gap: 6px 14px; }
+      #actions { padding: 8px 16px; }
+      #footer-copy { padding: 6px 16px 12px; }
     }
     #status { padding: 0 12px 6px; color: var(--muted); font-size: 0.82rem; min-height: 1.1em; }
     #board-wrap {
@@ -472,7 +497,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#040)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.001 (rev.#041)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -616,9 +641,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=040"></script>
-  <script src="js/match_store.js?v=040"></script>
-  <script src="js/engine.js?v=040"></script>
+  <script src="js/kv_parse.js?v=041"></script>
+  <script src="js/match_store.js?v=041"></script>
+  <script src="js/engine.js?v=041"></script>
   <script>
     (function () {
       try {
@@ -626,6 +651,13 @@
         if (tw) {
           if (typeof tw.ready === 'function') tw.ready();
           if (typeof tw.expand === 'function') tw.expand();
+          if (typeof tw.requestFullscreen === 'function') tw.requestFullscreen();
+          var plat = String(tw.platform || '').toLowerCase();
+          if (plat === 'tdesktop' || plat === 'macos' || plat === 'web' || plat === 'weba') {
+            document.documentElement.classList.add('ui-desktop');
+          }
+        } else if (window.innerWidth > 520) {
+          document.documentElement.classList.add('ui-desktop');
         }
       } catch (e) {}
 
