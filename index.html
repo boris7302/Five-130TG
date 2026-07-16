@@ -243,9 +243,13 @@
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 6px;
     }
-    #help-fab { top: 16%; }
-    #spinner-fab { top: 38%; }
-    #profile-fab { top: 62%; }
+    #help-fab { top: 48%; }
+    #spinner-fab { top: 28%; }
+    #profile-fab { top: 68%; }
+    #help-fab {
+      border-color: rgba(201, 162, 39, 0.75);
+      background: rgba(40, 72, 58, 0.98);
+    }
     #profile-fab .pf-lab, #spinner-fab .pf-lab, #help-fab .pf-lab {
       writing-mode: vertical-rl;
       text-orientation: mixed;
@@ -401,6 +405,7 @@
     <button class="action" id="newgame" type="button">Новая</button>
     <button class="action" id="save" type="button">Сохранить</button>
     <button class="action" id="list" type="button">Партии</button>
+    <button class="action" id="help-action" type="button">Помощь</button>
     <button class="action" id="debug" type="button">Отладка</button>
   </div>
   <div id="store-status">MatchStore: …</div>
@@ -1727,6 +1732,7 @@
       }
 
       document.getElementById('help-fab').onclick = openHelpMenu;
+      document.getElementById('help-action').onclick = openHelpMenu;
       document.getElementById('help-cancel').onclick = function () {
         document.getElementById('help-modal').classList.remove('open');
       };
