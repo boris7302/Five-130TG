@@ -388,7 +388,24 @@
 
       function paint() {
         var r = round();
-        var placed = r ? E.boardSnapshot(r.board) : [];
+        var layoutMeta = { bendUp: -1, bendDown: -1 };
+        var placed = [];
+        if (r) {
+          var W0 = wrap.getBoundingClientRect().width;
+          var H0 = wrap.getBoundingClientRect().height;
+          var margin0 = cfgBoard.margin != null ? cfgBoard.margin : 0.06;
+          var prefFrac0 = cfgBoard.prefFrac != null ? cfgBoard.prefFrac : 0.14;
+          var cellPref0 = Math.min(cfgBoard.cellMaxPx || 44, Math.min(W0, H0) * prefFrac0);
+          var availH0 = Math.max(1, H0 * (0.5 - margin0));
+          var bendOcc = cfgBoard.bendOccupy != null ? cfgBoard.bendOccupy : 0.70;
+          var maxVert = (availH0 * bendOcc) / Math.max(1e-6, cellPref0);
+          placed = E.boardSnapshot(r.board, {
+            bendVerticalLeft: true,
+            maxVertUp: maxVert,
+            maxVertDown: maxVert,
+            meta: layoutMeta,
+          });
+        }
         var dpr = window.devicePixelRatio || 1;
         var rect = wrap.getBoundingClientRect();
         canvas.width = Math.max(1, Math.floor(rect.width * dpr));
@@ -449,7 +466,9 @@
         gfxDebug.push('shrink_at=' + shrinkOcc + ';maxOcc=' + maxOcc.toFixed(3));
         gfxDebug.push('ox=' + ox.toFixed(1) + ';oy=' + oy.toFixed(1));
         gfxDebug.push('n=' + placed.length);
-        gfxDebug.push('layout_note=BEND_REQUIREMENTS;bends=pending');
+        gfxDebug.push('layout_profile=' + (cfgBoard.layoutProfile || 'A'));
+        gfxDebug.push('bend.up=' + layoutMeta.bendUp + ';bend.down=' + layoutMeta.bendDown);
+        gfxDebug.push('bend.occupy=' + (cfgBoard.bendOccupy != null ? cfgBoard.bendOccupy : 0.70));
         placed.forEach(function (t, i) {
           drawTile(ox + t.x * cell, oy + t.y * cell, t, cell);
           gfxDebug.push('t' + i + '=' + t.a + '|' + t.b +
@@ -737,6 +756,18 @@
         if (map['board.shrink.target']) cfgBoard.shrinkTarget = parseFloat(map['board.shrink.target']) || cfgBoard.shrinkTarget;
         if (map['board.bend.occupy']) cfgBoard.bendOccupy = parseFloat(map['board.bend.occupy']) || cfgBoard.bendOccupy;
         if (map['board.layout_profile']) cfgBoard.layoutProfile = map['board.layout_profile'];
+        // Применить выбранный профиль A–E (все профили остаются в cfg).
+        var pid = (cfgBoard.layoutProfile || 'A').toUpperCase();
+        function pget(suffix, fallback) {
+          var v = map['profile.' + pid + '.' + suffix];
+          if (v == null || v === '') v = map['board.' + suffix];
+          return v != null && v !== '' ? v : fallback;
+        }
+        cfgBoard.bendOccupy = parseFloat(pget('bend.occupy', cfgBoard.bendOccupy)) || cfgBoard.bendOccupy;
+        cfgBoard.shrinkOccupy = parseFloat(pget('shrink.occupy', cfgBoard.shrinkOccupy)) || cfgBoard.shrinkOccupy;
+        cfgBoard.shrinkTarget = parseFloat(pget('shrink.target', cfgBoard.shrinkTarget)) || cfgBoard.shrinkTarget;
+        cfgBoard.prefFrac = parseFloat(pget('cell.pref_frac', cfgBoard.prefFrac)) || cfgBoard.prefFrac;
+        cfgBoard.cellMaxPx = parseFloat(pget('cell.max_px', cfgBoard.cellMaxPx)) || cfgBoard.cellMaxPx;
         if (map['ui.stones.low_threshold']) cfgBoard.stonesLow = parseInt(map['ui.stones.low_threshold'], 10) || cfgBoard.stonesLow;
         if (map['ui.hand.tile_w_px']) cfgBoard.handW = parseInt(map['ui.hand.tile_w_px'], 10) || cfgBoard.handW;
         if (map['ui.hand.tile_h_px']) cfgBoard.handH = parseInt(map['ui.hand.tile_h_px'], 10) || cfgBoard.handH;

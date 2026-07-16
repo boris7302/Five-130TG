@@ -741,22 +741,34 @@
   }
 
   /**
-   * Раскладка стола без наложений + порядок pip (стык к соседу).
-   * Ветки от спиннера. @see rules_125 / graphics inward-outward.
+   * Раскладка стола без наложений + pip inward/outward.
+   * TG v0.001: загибы только vertical→налево (docs/BEND_REQUIREMENTS.md).
+   * @param {object} board Доска.
+   * @param {object} [opts]
+   * @param {number} [opts.maxVertUp] Макс. длина вертикали вверх (клетки) до загиба.
+   * @param {number} [opts.maxVertDown] Макс. длина вертикали вниз до загиба.
+   * @param {boolean} [opts.bendVerticalLeft=true] Загиб веток налево.
+   * @param {object} [opts.meta] Выход: bendUp/bendDown индексы (−1 = нет).
+   * @return {object[]} placed tiles
    */
-  function boardSnapshot(board) {
+  function boardSnapshot(board, opts) {
+    opts = opts || {};
     const placed = [];
+    const meta = opts.meta || {};
+    meta.bendUp = -1;
+    meta.bendDown = -1;
     if (!board.hasCenter) return placed;
 
     function sz(horiz) {
       return horiz ? { w: 1.72, h: 0.88 } : { w: 0.88, h: 1.72 };
     }
     const GAP = 0.14;
+    const bendLeft = opts.bendVerticalLeft !== false;
+    const maxUp = opts.maxVertUp != null ? opts.maxVertUp : 1e9;
+    const maxDown = opts.maxVertDown != null ? opts.maxVertDown : 1e9;
 
     function orientMain(tile) { return !tile.isDouble; }
     function orientBranch(tile) { return !!tile.isDouble; }
-
-    /** Для стыка: other pip относительно openPip. */
     function otherPip(tile, inward) {
       return tile.lo === inward ? tile.hi : tile.lo;
     }
@@ -773,13 +785,13 @@
         y: y,
         isCenter: !!(flags && flags.isCenter),
         isSpinner: !!(flags && flags.isSpinner),
+        bent: !!(flags && flags.bent),
       });
     }
 
     const cTile = board.center.tile;
     const cHoriz = orientMain(cTile);
     const cSz = sz(cHoriz);
-    // Центр: для ординарного — lo слева/сверху, hi справа/снизу; дубль одинаков.
     pushTile(cTile, board.center.player, 0, 0, cHoriz, {
       isCenter: true,
       isSpinner: board.hasSpinner && board.spinnerAtCenter,
@@ -787,19 +799,17 @@
 
     let prevHalf = cSz.w / 2;
     let cursor = 0;
-    let prevOpen = cTile.lo; // openPip mainLeft initially
+    let prevOpen = cTile.lo;
     for (let i = 0; i < board.mainLeft.tiles.length; i++) {
       const p = board.mainLeft.tiles[i];
       const h = orientMain(p.tile);
       const s = sz(h);
       cursor = cursor - prevHalf - GAP - s.w / 2;
-      const inward = prevOpen; // стык к центру/предыдущему справа
+      const inward = prevOpen;
       const outward = otherPip(p.tile, inward);
-      // горизонталь влево: слева outward, справа inward; вертикаль: сверху outward, снизу inward
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainLeft && board.spinnerIndex === i;
-      if (h) pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
-      else pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
+      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, outward, inward);
       prevOpen = outward;
       prevHalf = s.w / 2;
     }
@@ -816,9 +826,7 @@
       const outward = otherPip(p.tile, inward);
       const isSp = board.hasSpinner && !board.spinnerAtCenter &&
         board.spinnerArm === EndId.MainRight && board.spinnerIndex === i;
-      // горизонталь вправо: слева inward, справа outward
-      if (h) pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
-      else pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
+      pushTile(p.tile, p.player, cursor, 0, h, { isSpinner: isSp }, inward, outward);
       prevOpen = outward;
       prevHalf = s.w / 2;
     }
@@ -838,39 +846,70 @@
       }
     }
 
-    prevHalf = spinnerHalfH;
-    cursor = sy;
-    prevOpen = spinnerPipVal;
-    for (let i = 0; i < board.branchUp.tiles.length; i++) {
-      const p = board.branchUp.tiles[i];
-      const h = orientBranch(p.tile);
-      const s = sz(h);
-      cursor = cursor - prevHalf - GAP - s.h / 2;
-      const inward = prevOpen;
-      const outward = otherPip(p.tile, inward);
-      // вверх: снизу inward, сверху outward (для vertical: a=top, b=bottom)
-      if (!h) pushTile(p.tile, p.player, sx, cursor, h, {}, outward, inward);
-      else pushTile(p.tile, p.player, sx, cursor, h, {}, inward, outward);
-      prevOpen = outward;
-      prevHalf = s.h / 2;
+    /**
+     * Ветка вверх/вниз; при превышении maxStraight — хвост налево (TG §4).
+     * @param {object[]} tiles
+     * @param {boolean} goingUp
+     * @param {number} maxStraight
+     * @param {string} metaKey 'bendUp'|'bendDown'
+     */
+    function layoutBranch(tiles, goingUp, maxStraight, metaKey) {
+      let mode = 'vert';
+      let prevHalfV = spinnerHalfH;
+      let cursorY = sy;
+      let cursorX = sx;
+      let prevOpenLocal = spinnerPipVal;
+      let prevHalfW = 0;
+
+      for (let i = 0; i < tiles.length; i++) {
+        const p = tiles[i];
+
+        if (mode === 'vert') {
+          const h = orientBranch(p.tile);
+          const s = sz(h);
+          const nextY = goingUp
+            ? cursorY - prevHalfV - GAP - s.h / 2
+            : cursorY + prevHalfV + GAP + s.h / 2;
+          const extent = Math.abs(nextY - sy) + s.h / 2;
+          if (bendLeft && extent > maxStraight && i > 0) {
+            mode = 'left';
+            meta[metaKey] = i;
+            // Горизонтальный ряд на уровне центра последнего верт. камня.
+            cursorX = sx;
+            prevHalfW = sz(orientBranch(tiles[i - 1].tile)).w / 2;
+            // fall through — этот камень уже «загиб»
+          } else {
+            cursorY = nextY;
+            const inward = prevOpenLocal;
+            const outward = otherPip(p.tile, inward);
+            if (!h) {
+              if (goingUp) pushTile(p.tile, p.player, sx, cursorY, h, {}, outward, inward);
+              else pushTile(p.tile, p.player, sx, cursorY, h, {}, inward, outward);
+            } else {
+              pushTile(p.tile, p.player, sx, cursorY, h, {}, inward, outward);
+            }
+            prevOpenLocal = outward;
+            prevHalfV = s.h / 2;
+            continue;
+          }
+        }
+
+        // mode === 'left' (ось как mainLeft: дубль вертикально)
+        const h = orientMain(p.tile);
+        const s = sz(h);
+        cursorX = cursorX - prevHalfW - GAP - s.w / 2;
+        const inward = prevOpenLocal;
+        const outward = otherPip(p.tile, inward);
+        // горизонталь влево: слева outward, справа inward
+        if (h) pushTile(p.tile, p.player, cursorX, cursorY, h, { bent: true }, outward, inward);
+        else pushTile(p.tile, p.player, cursorX, cursorY, h, { bent: true }, outward, inward);
+        prevOpenLocal = outward;
+        prevHalfW = s.w / 2;
+      }
     }
 
-    prevHalf = spinnerHalfH;
-    cursor = sy;
-    prevOpen = spinnerPipVal;
-    for (let i = 0; i < board.branchDown.tiles.length; i++) {
-      const p = board.branchDown.tiles[i];
-      const h = orientBranch(p.tile);
-      const s = sz(h);
-      cursor = cursor + prevHalf + GAP + s.h / 2;
-      const inward = prevOpen;
-      const outward = otherPip(p.tile, inward);
-      // вниз: сверху inward, снизу outward
-      if (!h) pushTile(p.tile, p.player, sx, cursor, h, {}, inward, outward);
-      else pushTile(p.tile, p.player, sx, cursor, h, {}, inward, outward);
-      prevOpen = outward;
-      prevHalf = s.h / 2;
-    }
+    layoutBranch(board.branchUp.tiles, true, maxUp, 'bendUp');
+    layoutBranch(board.branchDown.tiles, false, maxDown, 'bendDown');
 
     return placed;
   }
