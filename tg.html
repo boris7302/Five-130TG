@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#054)</title>
+  <title>Пятак-130 v0.002 (rev.#055)</title>
   <!-- Не грузим telegram.org/js синхронно: при недоступности CDN Desktop WebView
        остаётся пустым (только заголовок бота). User берём из #tgWebAppData (MatchStore).
        Официальный скрипт — асинхронно ниже, с таймаутом. -->
@@ -14,7 +14,7 @@
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '054';
+      var APP_HTML_REV = '055';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -104,6 +104,23 @@
       max-width: 100%;
     }
     #tg-user.guest { color: var(--muted); font-weight: 600; }
+    #tg-premium {
+      display: none;
+      margin-top: 2px;
+      font-size: 0.68rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #1b4d3e;
+      background: linear-gradient(90deg, #e8c547, #f0d878);
+      padding: 1px 7px 2px;
+      border-radius: 4px;
+      width: fit-content;
+      max-width: 100%;
+      line-height: 1.25;
+      box-shadow: 0 0 8px rgba(232, 197, 71, 0.35);
+    }
+    #tg-premium.on { display: inline-block; }
     .hdr-center {
       display: flex; align-items: baseline; justify-content: center; gap: 8px;
       white-space: nowrap;
@@ -186,6 +203,7 @@
       .ver { display: block; margin-left: 0; font-size: 0.58rem; line-height: 1.2; }
       #matchup { font-size: 0.82rem; }
       #tg-user { font-size: 0.66rem; }
+      #tg-premium { font-size: 0.62rem; }
       :root { --clock-size: 1.05rem; }
       #weekday { font-size: 0.82rem; }
       .stat-value { font-size: 1.02rem; }
@@ -541,9 +559,10 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#054)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#055)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
+      <div id="tg-premium" title="Премиум Five-130">Премиум</div>
     </div>
     <div class="hdr-center" title="Дата и время">
       <div id="clock">--/--/-- --:--:--</div>
@@ -710,9 +729,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=054"></script>
-  <script src="js/match_store.js?v=054"></script>
-  <script src="js/engine.js?v=054"></script>
+  <script src="js/kv_parse.js?v=055"></script>
+  <script src="js/match_store.js?v=055"></script>
+  <script src="js/engine.js?v=055"></script>
   <script>
     (function () {
       function applyTelegramChrome(tw) {
@@ -859,6 +878,49 @@
         return null;
       }
 
+      var premiumState = { known: false, active: false };
+
+      function setPremiumBadge(active, detail) {
+        var el = document.getElementById('tg-premium');
+        if (!el) return;
+        premiumState.known = true;
+        premiumState.active = !!active;
+        if (active) {
+          el.classList.add('on');
+          el.textContent = 'Премиум';
+          el.title = detail || 'Премиум Five-130 активен (архив L1)';
+        } else {
+          el.classList.remove('on');
+          el.textContent = 'Премиум';
+          el.title = detail || 'Премиум не активен';
+        }
+      }
+
+      function refreshPremiumBadge() {
+        var Store = window.Five130MatchStore;
+        var el = document.getElementById('tg-premium');
+        if (!Store || !el) return;
+        var id = Store.ownerId ? Store.ownerId() : 'guest';
+        if (id === 'guest') {
+          setPremiumBadge(false, 'Нет Telegram user');
+          el.classList.remove('on');
+          return;
+        }
+        if (!Store.getPremiumStatus) return;
+        Store.getPremiumStatus(id).then(function (st) {
+          if (!st || st.skipped || st.err === 'cloud_disabled' || st.err === 'network') {
+            el.classList.remove('on');
+            el.title = 'Премиум: облако недоступно' + (st && st.err ? ' (' + st.err + ')' : '');
+            return;
+          }
+          setPremiumBadge(!!st.active, st.active
+            ? ('Премиум Five-130 · id ' + id)
+            : ('Нет премиума · id ' + id));
+        }).catch(function () {
+          el.classList.remove('on');
+        });
+      }
+
       function updateTgUserBadge() {
         var el = document.getElementById('tg-user');
         if (!el) return;
@@ -874,6 +936,7 @@
           el.classList.add('guest');
           el.title = 'Telegram user не передан (облако только локально)';
         }
+        refreshPremiumBadge();
       }
 
       function isPvpMode() {
@@ -1603,6 +1666,8 @@
           game_index: String(m.gameIndex),
         }).then(function (res) {
           setStoreStatus(formatSaveStatus(res));
+          if (res && res.cloud_full && res.cloud_full.ok) setPremiumBadge(true);
+          else refreshPremiumBadge();
           return res;
         });
       }
@@ -1878,6 +1943,7 @@
             spinnerPick = cfgBoard.spinnerStyle || 'amber';
             if (window.Five130MatchStore && Five130MatchStore.configureCloudFromCfgText) {
               Five130MatchStore.configureCloudFromCfgText(t);
+              refreshPremiumBadge();
             }
             return t;
           }).catch(function () { return tryNext(i + 1); });

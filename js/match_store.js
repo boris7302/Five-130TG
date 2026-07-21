@@ -195,6 +195,37 @@
     };
   }
 
+  /**
+   * premium.get → { active, five130, five130_until, user } | null on skip/error
+   */
+  function getPremiumStatus(user) {
+    const u = user != null ? String(user) : ownerId();
+    if (!u || u === 'guest') {
+      return Promise.resolve({ active: false, skipped: true, err: 'guest' });
+    }
+    return rpc('premium.get', { user: u }).then(function (r) {
+      if (!r || r.skipped || !r.ok) {
+        return {
+          active: false,
+          skipped: !!(r && r.skipped),
+          err: (r && r.err) || 'rpc_failed',
+          user: u,
+        };
+      }
+      const reply = r.reply || '';
+      const active = /(?:^|\s)active=1(?:\s|$)/.test(reply);
+      const five = /(?:^|\s)five130=([^\s]+)/.exec(reply);
+      const until = /(?:^|\s)five130_until=([^\s]+)/.exec(reply);
+      return {
+        active: active,
+        five130: five ? five[1] : '0',
+        five130_until: until ? until[1] : '0',
+        user: u,
+        reply: reply,
+      };
+    });
+  }
+
   function rpc(cmd, fields, body) {
     if (!cloudCfg.enabled || !cloudCfg.url) {
       return Promise.resolve({
@@ -494,6 +525,7 @@
     configureCloud: configureCloud,
     configureCloudFromCfgText: configureCloudFromCfgText,
     cloudStatus: cloudStatus,
+    getPremiumStatus: getPremiumStatus,
     saveCloudSnap: saveCloudSnap,
     saveCloudFull: saveCloudFull,
     cloudList: cloudList,
