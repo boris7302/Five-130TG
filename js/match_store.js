@@ -1,6 +1,8 @@
 /**
- * MatchStore: IndexedDB, значения — текст ключ=значение.
- * API: ownerId, listMatches, loadMatch, saveMatch, deleteMatch, exportMatchTxt
+ * MatchStore: IndexedDB + optional cloud (Valkey via five130d HTTP /v0/rpc).
+ * L0: saveCloudSnap for any TG user; L1: saveCloudFull requires premium.five130.
+ * API: ownerId, listMatches, loadMatch, saveMatch, deleteMatch, exportMatchTxt,
+ *      saveCloudSnap, saveCloudFull, cloudList, configureCloud
  */
 (function (global) {
   'use strict';
@@ -8,6 +10,9 @@
   const DB_NAME = 'five130_kv';
   const DB_VERSION = 1;
   const STORE = 'kv';
+
+  /** @type {{ url: string, enabled: boolean }} */
+  var cloudCfg = { url: '', enabled: false };
 
   function openDb() {
     return new Promise(function (resolve, reject) {
@@ -68,6 +73,79 @@
   function indexKey(owner) { return 'idx:' + owner; }
   function matchKey(owner, matchId) { return 'match:' + owner + ':' + matchId; }
 
+  /**
+   * @param {{ url?: string, enabled?: boolean }|string|null} opts
+   *   URL five130d HTTP, например http://127.0.0.1:7380
+   */
+  function configureCloud(opts) {
+    if (typeof opts === 'string') {
+      cloudCfg.url = opts.replace(/\/$/, '');
+      cloudCfg.enabled = !!cloudCfg.url;
+      return cloudCfg;
+    }
+    opts = opts || {};
+    if (opts.url != null) cloudCfg.url = String(opts.url).replace(/\/$/, '');
+    if (opts.enabled != null) cloudCfg.enabled = !!opts.enabled;
+    else cloudCfg.enabled = !!cloudCfg.url;
+    return cloudCfg;
+  }
+
+  function cloudStatus() {
+    return {
+      enabled: cloudCfg.enabled && !!cloudCfg.url,
+      url: cloudCfg.url,
+      owner: ownerId(),
+      canCloud: ownerId() !== 'guest',
+    };
+  }
+
+  function rpc(cmd, fields, body) {
+    if (!cloudCfg.enabled || !cloudCfg.url) {
+      return Promise.resolve({
+        ok: false,
+        skipped: true,
+        err: 'cloud_disabled',
+        reply: '',
+      });
+    }
+    const id = 'js_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+    const payload = {
+      id: id,
+      cmd: cmd,
+      fields: fields || {},
+      user: (fields && fields.user) || ownerId(),
+      match_id: fields && fields.match_id,
+    };
+    if (body != null) payload.body = String(body);
+    return fetch(cloudCfg.url + '/v0/rpc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(function (r) {
+      return r.json();
+    }).then(function (j) {
+      const reply = (j && j.reply) || '';
+      const ok = reply.indexOf('ok=1') === 0;
+      const errMatch = /(?:^|\s)err=([^\s]+)/.exec(reply);
+      return {
+        ok: ok,
+        skipped: false,
+        reply: reply,
+        err: ok ? null : (errMatch ? errMatch[1] : 'rpc_failed'),
+        body: j && j.body,
+        premium_required: !ok && errMatch && errMatch[1] === 'premium_required',
+      };
+    }).catch(function (e) {
+      return {
+        ok: false,
+        skipped: false,
+        reply: '',
+        err: 'network',
+        detail: String(e && e.message ? e.message : e),
+      };
+    });
+  }
+
   async function listMatches() {
     const owner = ownerId();
     const text = await idbGet(indexKey(owner));
@@ -104,6 +182,65 @@
     return { ok: true, owner: owner, match_id: matchId };
   }
 
+  /**
+   * L0: снимок resume в Valkey (если TG user + cloud URL).
+   * @return {Promise<{local:object, cloud:object}>}
+   */
+  async function saveCloudSnap(matchId, matchText, meta) {
+    const local = await saveMatch(matchId, matchText, meta);
+    const owner = ownerId();
+    if (owner === 'guest') {
+      return {
+        local: local,
+        cloud: { ok: false, skipped: true, err: 'guest', hint: 'local_only' },
+      };
+    }
+    const cloud = await rpc('match.save_snap', {
+      user: owner,
+      match_id: matchId,
+      game_id: (meta && meta.game_type) || 'five130',
+    }, matchText);
+    return { local: local, cloud: cloud };
+  }
+
+  /**
+   * L1: полный архив; при отсутствии премиума — cloud.premium_required.
+   */
+  async function saveCloudFull(matchId, matchText, meta) {
+    const local = await saveMatch(matchId, matchText, meta);
+    const owner = ownerId();
+    if (owner === 'guest') {
+      return {
+        local: local,
+        cloud: { ok: false, skipped: true, err: 'guest', hint: 'local_only' },
+      };
+    }
+    const cloud = await rpc('match.save_full', {
+      user: owner,
+      match_id: matchId,
+      game_id: (meta && meta.game_type) || 'five130',
+      scores: (meta && meta.final_score) || '0,0',
+      mode: (meta && meta.mode) || 'ai',
+    }, matchText);
+    return { local: local, cloud: cloud };
+  }
+
+  async function cloudList() {
+    const owner = ownerId();
+    if (owner === 'guest') {
+      return { ok: false, skipped: true, err: 'guest' };
+    }
+    return rpc('match.list', { user: owner });
+  }
+
+  async function cloudGetSnap() {
+    const owner = ownerId();
+    if (owner === 'guest') {
+      return { ok: false, skipped: true, err: 'guest' };
+    }
+    return rpc('match.get_snap', { user: owner });
+  }
+
   async function deleteMatch(matchId) {
     const Kv = global.Five130Kv;
     const owner = ownerId();
@@ -111,6 +248,9 @@
     const idx = await listMatches();
     const items = idx.items.filter(function (x) { return x.id !== matchId; });
     await idbSet(indexKey(owner), Kv.buildIndexDocument(owner, items, Kv.timestampNow()));
+    if (owner !== 'guest' && cloudCfg.enabled) {
+      await rpc('match.delete', { user: owner, match_id: matchId });
+    }
     return { ok: true };
   }
 
@@ -147,24 +287,35 @@
     else if ((fields && String(fields.match_winner)) === '1') result = 'lose';
     else if (h > a) result = 'win';
     else if (a > h) result = 'lose';
-    await saveMatch(matchId, text, {
+    const meta = {
       started: fields && fields.started,
       game_type: fields && fields.game_type,
       final_score: score,
       result: result,
-    });
-    return { match_id: matchId, text: text };
+      mode: fields && fields.mode,
+    };
+    // Локально всегда; облако: snap (L0) + попытка full (L1).
+    const snap = await saveCloudSnap(matchId, text, meta);
+    let full = null;
+    if (snap.cloud && !snap.cloud.skipped && owner !== 'guest') {
+      full = await rpc('match.save_full', {
+        user: owner,
+        match_id: matchId,
+        game_id: meta.game_type || 'five130',
+        scores: score,
+        mode: meta.mode || 'ai',
+      }, text);
+    }
+    return {
+      match_id: matchId,
+      text: text,
+      cloud: snap.cloud,
+      cloud_full: full,
+    };
   }
-
 
   function debugKey(owner) { return 'debug:' + owner + ':last'; }
 
-  /**
-   * Сохранить последний отладочный дамп партии (KV-текст) в IndexedDB.
-   * Это локальная копия на устройстве — не публичная HTTP-ссылка.
-   * @param {string} text Дамп Five130TG-Debug/1
-   * @return {Promise<{owner:string, key:string}>}
-   */
   async function saveDebugDump(text) {
     const owner = ownerId();
     const key = debugKey(owner);
@@ -173,14 +324,12 @@
     return { owner: owner, key: key };
   }
 
-  /** @return {Promise<string|null>} последний debug-дамп или null */
   async function loadDebugDump() {
     const owner = ownerId();
     const text = await idbGet(debugKey(owner));
     return text || null;
   }
 
-  /** Скачать последний debug из MatchStore как .txt */
   async function exportDebugTxt() {
     const text = await loadDebugDump();
     if (!text) return null;
@@ -188,6 +337,23 @@
       filename: 'five130tg_debug_last.txt',
       text: text,
     };
+  }
+
+  /** Разбор server.cloud_url из текста cfg (key=value). */
+  function configureCloudFromCfgText(cfgText) {
+    if (!cfgText) return cloudCfg;
+    var url = '';
+    var enabled = true;
+    String(cfgText).split(/\r?\n/).forEach(function (line) {
+      var t = line.replace(/#.*$/, '').trim();
+      var eq = t.indexOf('=');
+      if (eq < 0) return;
+      var k = t.slice(0, eq).trim();
+      var v = t.slice(eq + 1).trim();
+      if (k === 'server.cloud_url') url = v;
+      if (k === 'server.http.enabled') enabled = (v === '1' || v === 'true');
+    });
+    return configureCloud({ url: url, enabled: enabled && !!url });
   }
 
   global.Five130MatchStore = {
@@ -201,6 +367,13 @@
     saveDebugDump: saveDebugDump,
     loadDebugDump: loadDebugDump,
     exportDebugTxt: exportDebugTxt,
+    configureCloud: configureCloud,
+    configureCloudFromCfgText: configureCloudFromCfgText,
+    cloudStatus: cloudStatus,
+    saveCloudSnap: saveCloudSnap,
+    saveCloudFull: saveCloudFull,
+    cloudList: cloudList,
+    cloudGetSnap: cloudGetSnap,
     _keys: { indexKey: indexKey, matchKey: matchKey, debugKey: debugKey },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

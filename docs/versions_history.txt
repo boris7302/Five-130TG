@@ -5,7 +5,7 @@
 # Freeze 0.001: docs/releases/v0.001_FREEZE.md
 
 app.version=0.002
-app.rev=048
+app.rev=049
 
 001  d69182d  Publish Five-130TG Mini App demo to GitHub Pages.
 002  318ab10  Fix blank Mini App: ship CanvasKit locally (no gstatic CDN).
@@ -55,3 +55,4 @@ app.rev=048
 046  af43859  docs: PvP Telegram plan for v0.002.
 047  03173b5  PvP stage 1: hot-seat mode, game mode modal, no AI in pvp.
 048  4156b90  Rename ПК/компьютер→ИИ; Valkey data model + five130d docs.
+049  (local)   Match cloud L0/L1 (Valkey); MatchStore cloud RPC; UI save hints.
