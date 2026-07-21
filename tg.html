@@ -541,12 +541,32 @@
       display: flex; align-items: center; justify-content: space-between; gap: 10px;
       font-size: 0.88rem; color: var(--muted);
     }
-    #admin-modal .admin-edit input[type="number"] {
+    #admin-modal .admin-edit input[type="number"],
+    #admin-modal .admin-add input[type="number"],
+    #admin-modal .admin-add input[type="text"] {
       width: 7rem; padding: 6px 8px; border-radius: 8px;
       border: 1px solid rgba(245,240,230,.35); background: rgba(0,0,0,.25); color: var(--text);
     }
-    #admin-btn { display: none; }
+    #admin-modal .admin-add input[type="text"] { width: 11rem; }
+    #admin-modal .admin-add {
+      display: flex; flex-direction: column; gap: 8px; margin: 0 0 12px;
+      padding: 10px; border: 1px solid rgba(255, 210, 74, 0.35); border-radius: 10px;
+      background: rgba(255, 210, 74, 0.06);
+    }
+    #admin-modal .admin-add label {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      font-size: 0.88rem; color: var(--muted);
+    }
+    #admin-btn {
+      display: none;
+      background: #ffd24a;
+      color: #1a1408;
+      border: 1px solid #e6b800;
+      font-weight: 900;
+      box-shadow: 0 0 10px rgba(255, 210, 74, 0.45);
+    }
     #admin-btn.on { display: inline-flex; }
+    #admin-btn:active { filter: brightness(0.95); }
     #profile-modal .profile-opt.selected, #spinner-modal .spinner-opt.selected {
       border-color: var(--accent); background: rgba(201,162,39,.18);
     }
@@ -594,7 +614,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.003 (rev.#058)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.003 (rev.#060)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
       <div id="tg-premium" title="Премиум Five-130">Премиум</div>
@@ -769,12 +789,24 @@
     <div class="card">
       <h2>Админ</h2>
       <div class="lines" id="admin-modal-hint">Игроки, баллы и премиум.</div>
+      <div class="admin-add" id="admin-add">
+        <div class="lines" style="margin:0"><strong>Игрок по id</strong> — в т.ч. ещё не заходивший</div>
+        <label>Telegram id <input type="text" id="admin-add-id" inputmode="numeric" placeholder="545375021"></label>
+        <label>Красные <input type="number" id="admin-add-red" min="0" step="1" value="0"></label>
+        <label>Синие <input type="number" id="admin-add-blue" min="0" step="1" value="0"></label>
+        <label>Сделать админом <input type="checkbox" id="admin-add-role"></label>
+        <div class="btns">
+          <button type="button" id="admin-add-apply">Начислить</button>
+        </div>
+      </div>
       <div class="admin-list" id="admin-list"></div>
       <div class="admin-edit" id="admin-edit">
         <div class="lines" id="admin-edit-title">Игрок</div>
         <label>Красные <input type="number" id="admin-red" min="0" step="1" value="0"></label>
         <label>Синие <input type="number" id="admin-blue" min="0" step="1" value="0"></label>
         <label>Премиум <input type="checkbox" id="admin-premium"></label>
+        <label>Админ <input type="checkbox" id="admin-role"></label>
+        <div class="lines" id="admin-edit-hint" style="font-size:0.78rem;margin:0"></div>
         <div class="btns">
           <button type="button" id="admin-apply">Сохранить</button>
         </div>
@@ -797,9 +829,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=058"></script>
-  <script src="js/match_store.js?v=058"></script>
-  <script src="js/engine.js?v=058"></script>
+  <script src="js/kv_parse.js?v=060"></script>
+  <script src="js/match_store.js?v=060"></script>
+  <script src="js/engine.js?v=060"></script>
   <script>
     (function () {
       function applyTelegramChrome(tw) {
@@ -1036,18 +1068,42 @@
 
       function selectAdminUser(u) {
         adminPick = u;
+        var Store = window.Five130MatchStore;
+        var callerOwner = !!(Store && Store.isOwner && Store.isOwner());
         var edit = document.getElementById('admin-edit');
         var title = document.getElementById('admin-edit-title');
+        var hint = document.getElementById('admin-edit-hint');
         var red = document.getElementById('admin-red');
         var blue = document.getElementById('admin-blue');
         var prem = document.getElementById('admin-premium');
+        var roleEl = document.getElementById('admin-role');
         if (!edit || !u) return;
         var label = u.display || u.id;
         if (u.username) label += ' (@' + u.username + ')';
+        if (u.isOwner) label += ' · владелец';
+        else if (u.isAdmin) label += ' · админ';
         if (title) title.innerHTML = '<strong>' + escapeHtml(label) + '</strong> · id ' + escapeHtml(u.id);
         if (red) red.value = String(u.red || 0);
         if (blue) blue.value = String(u.blue || 0);
-        if (prem) prem.checked = !!u.premium;
+        if (prem) {
+          prem.checked = !!u.premium;
+          // Снять премиум — только владелец; выдать можно любому админу.
+          prem.disabled = (!!u.premium && !callerOwner);
+        }
+        if (roleEl) {
+          roleEl.checked = !!(u.isAdmin || u.isOwner);
+          // Владельца нельзя снять; снять админа — только владелец.
+          roleEl.disabled = !!u.isOwner || (!!u.isAdmin && !callerOwner);
+        }
+        if (hint) {
+          if (u.isOwner) {
+            hint.textContent = 'Владелец: роль не снимается.';
+          } else if (!callerOwner) {
+            hint.textContent = 'Админ: можно назначить админа и выдать премиум; снять — только владелец.';
+          } else {
+            hint.textContent = 'Владелец: назначить/снять админа, выдать/снять премиум, любые баллы.';
+          }
+        }
         edit.classList.add('open');
         var list = document.getElementById('admin-list');
         if (list) {
@@ -1082,20 +1138,22 @@
           }
           if (hint) {
             hint.textContent = 'Игроков: ' + (res.count || 0) +
-              '. Выберите строку — правка баллов и премиума.';
+              ' (без дубликатов). Баллы, премиум, админы.';
           }
           if (!list) return;
           if (!res.users || !res.users.length) {
-            list.innerHTML = '<div class="lines">Пока нет зарегистрированных игроков. Сохраните партию или откройте Mini App ещё раз.</div>';
+            list.innerHTML = '<div class="lines">Пока нет игроков. Список пополняется при входе в Mini App (user.touch).</div>';
             return;
           }
           list.innerHTML = res.users.map(function (u) {
             var name = u.display || u.id;
             var un = u.username ? ('@' + u.username) : '';
             var prem = u.premium ? 'премиум' : '—';
+            var role = u.isOwner ? 'владелец' : (u.isAdmin ? 'админ' : 'игрок');
             return '<button type="button" class="admin-opt" data-id="' + escapeHtml(u.id) + '">' +
               '<span class="tag">' + escapeHtml(name) + '</span>' +
               '<span class="meta">' + escapeHtml(un) +
+              ' · ' + role +
               ' · красн. ' + (u.red || 0) + ' · син. ' + (u.blue || 0) +
               ' · ' + prem + '<br>id ' + escapeHtml(u.id) + '</span></button>';
           }).join('');
@@ -1114,31 +1172,91 @@
         });
       }
 
+      function applyAdminAddById() {
+        var Store = window.Five130MatchStore;
+        if (!Store || !Store.isAdmin || !Store.isAdmin()) {
+          setStoreStatus('Нет прав админа');
+          return;
+        }
+        var idEl = document.getElementById('admin-add-id');
+        var redEl = document.getElementById('admin-add-red');
+        var blueEl = document.getElementById('admin-add-blue');
+        var roleEl = document.getElementById('admin-add-role');
+        var tid = idEl ? String(idEl.value || '').trim() : '';
+        if (!/^\d{3,20}$/.test(tid)) {
+          setStoreStatus('Укажите числовой Telegram id');
+          return;
+        }
+        var red = redEl ? parseInt(redEl.value, 10) : 0;
+        var blue = blueEl ? parseInt(blueEl.value, 10) : 0;
+        if (isNaN(red) || red < 0) red = 0;
+        if (isNaN(blue) || blue < 0) blue = 0;
+        var makeAdmin = !!(roleEl && roleEl.checked);
+        setStoreStatus('Начисление…');
+        var tasks = [Store.adminWalletSet(tid, red, blue)];
+        if (makeAdmin) tasks.push(Store.adminRoleSet(tid, 'admin'));
+        Promise.all(tasks).then(function (rs) {
+          var bad = null;
+          for (var i = 0; i < rs.length; i++) {
+            if (!rs[i] || !rs[i].ok) { bad = rs[i]; break; }
+          }
+          if (!bad) {
+            var created = rs[0] && rs[0].reply && /(?:^|\s)created=1(?:\s|$)/.test(rs[0].reply);
+            setStoreStatus((created ? 'Создан и начислено: ' : 'Начислено: ') + tid);
+            if (idEl) idEl.value = '';
+            if (roleEl) roleEl.checked = false;
+            openAdminModal();
+          } else {
+            setStoreStatus('Не начислено: ' + (bad.err || 'ошибка'));
+          }
+        }).catch(function (e) {
+          setStoreStatus('Не начислено: ' + String(e && e.message ? e.message : e));
+        });
+      }
+
       function applyAdminEdit() {
         var Store = window.Five130MatchStore;
         if (!Store || !adminPick) return;
         var redEl = document.getElementById('admin-red');
         var blueEl = document.getElementById('admin-blue');
         var premEl = document.getElementById('admin-premium');
+        var roleEl = document.getElementById('admin-role');
         var red = redEl ? parseInt(redEl.value, 10) : 0;
         var blue = blueEl ? parseInt(blueEl.value, 10) : 0;
         if (isNaN(red) || red < 0) red = 0;
         if (isNaN(blue) || blue < 0) blue = 0;
         var wantPrem = !!(premEl && premEl.checked);
+        var wantAdmin = !!(roleEl && roleEl.checked);
+        var tasks = [Store.adminWalletSet(adminPick.id, red, blue)];
+        var premChanged = wantPrem !== !!adminPick.premium;
+        var roleChanged = wantAdmin !== !!(adminPick.isAdmin || adminPick.isOwner);
+        if (premChanged) {
+          if (!wantPrem && Store.isOwner && !Store.isOwner()) {
+            setStoreStatus('Снять премиум может только владелец');
+            return;
+          }
+          tasks.push(Store.adminPremiumSet(adminPick.id, wantPrem));
+        }
+        if (roleChanged && !adminPick.isOwner) {
+          if (!wantAdmin && Store.isOwner && !Store.isOwner()) {
+            setStoreStatus('Снять админа может только владелец');
+            return;
+          }
+          tasks.push(Store.adminRoleSet(adminPick.id, wantAdmin ? 'admin' : 'player'));
+        }
         setStoreStatus('Сохранение…');
-        Promise.all([
-          Store.adminWalletSet(adminPick.id, red, blue),
-          Store.adminPremiumSet(adminPick.id, wantPrem),
-        ]).then(function (rs) {
-          var w = rs[0];
-          var p = rs[1];
-          if ((w && w.ok) && (p && p.ok)) {
+        Promise.all(tasks).then(function (rs) {
+          var bad = null;
+          for (var i = 0; i < rs.length; i++) {
+            if (!rs[i] || !rs[i].ok) { bad = rs[i]; break; }
+          }
+          if (!bad) {
             setStoreStatus('Сохранено: ' + (adminPick.display || adminPick.id));
             openAdminModal();
             refreshPremiumBadge();
+            refreshAdminButton();
           } else {
-            var err = (w && !w.ok && w.err) || (p && !p.ok && p.err) || 'ошибка';
-            setStoreStatus('Не сохранено: ' + err);
+            setStoreStatus('Не сохранено: ' + (bad.err || 'ошибка'));
           }
         }).catch(function (e) {
           setStoreStatus('Не сохранено: ' + String(e && e.message ? e.message : e));
@@ -2205,8 +2323,12 @@
               refreshPremiumBadge();
               refreshAdminButton();
               if (Five130MatchStore.touchUser) {
-                Five130MatchStore.touchUser().then(function () {
+                Five130MatchStore.touchUser().then(function (tr) {
                   refreshAdminButton();
+                  updateTgUserBadge();
+                  if (tr && tr.ok && tr.created) {
+                    setStoreStatus('Вы в списке игроков (новый вход)');
+                  }
                 }).catch(function () {});
               }
             }
@@ -2390,6 +2512,7 @@
       document.getElementById('admin-close').onclick = closeAdminModal;
       document.getElementById('admin-refresh').onclick = openAdminModal;
       document.getElementById('admin-apply').onclick = applyAdminEdit;
+      document.getElementById('admin-add-apply').onclick = applyAdminAddById;
 
       document.getElementById('debug').onclick = runDebugExport;
       document.getElementById('debug-close').onclick = function () {

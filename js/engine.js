@@ -19,7 +19,7 @@
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.003";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 58;
+  const APP_REV = 60;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';

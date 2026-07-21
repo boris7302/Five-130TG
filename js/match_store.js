@@ -11,8 +11,21 @@
   const DB_VERSION = 1;
   const STORE = 'kv';
 
-  /** @type {{ url: string, enabled: boolean, adminIds: string[] }} */
-  var cloudCfg = { url: '', enabled: false, adminIds: ['545375021'] };
+  /** @type {{ url: string, enabled: boolean, adminIds: string[], ownerId: string }} */
+  var cloudCfg = {
+    url: '',
+    enabled: false,
+    adminIds: ['545375021'],
+    ownerId: '545375021',
+  };
+
+  /** Роль с сервера (user.touch); дополняет seed allowlist. */
+  var roleState = {
+    known: false,
+    isAdmin: false,
+    isOwner: false,
+    role: 'player',
+  };
 
   function openDb() {
     return new Promise(function (resolve, reject) {
@@ -156,10 +169,27 @@
       : ['545375021'];
   }
 
-  /** Локальная проверка allowlist (кнопка «Админ»). Сервер всё равно проверяет admin=. */
+  function ownerTelegramId() {
+    return cloudCfg.ownerId || '545375021';
+  }
+
+  function isOwner() {
+    const id = ownerId();
+    if (id === 'guest') return false;
+    if (roleState.known) return !!roleState.isOwner;
+    return id === ownerTelegramId();
+  }
+
+  /**
+   * Кнопка «Админ»: seed cfg / owner / роль с сервера после user.touch.
+   * Сервер всё равно проверяет portal:admins.
+   */
   function isAdmin() {
     const id = ownerId();
-    return id !== 'guest' && adminIds().indexOf(id) >= 0;
+    if (id === 'guest') return false;
+    if (roleState.known) return !!roleState.isAdmin;
+    if (id === ownerTelegramId()) return true;
+    return adminIds().indexOf(id) >= 0;
   }
 
   function adminCallerFields(extra) {
@@ -222,7 +252,9 @@
       owner: ownerId(),
       canCloud: ownerId() !== 'guest',
       isAdmin: isAdmin(),
+      isOwner: isOwner(),
       adminIds: adminIds().slice(),
+      ownerId: ownerTelegramId(),
     };
   }
 
@@ -629,6 +661,7 @@
       var v = t.slice(eq + 1).trim();
       if (k === 'server.cloud_url') url = v;
       if (k === 'server.http.enabled') enabled = (v === '1' || v === 'true');
+      if (k === 'server.owner.telegram_id' && v) cloudCfg.ownerId = v;
       if (k === 'server.admin.telegram_ids') {
         admins = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
       }
@@ -637,17 +670,40 @@
     return configureCloud({ url: url, enabled: enabled && !!url });
   }
 
-  /** Зарегистрировать текущего TG-игрока в portal:users. */
+  function applyRoleFromReply(reply) {
+    const r = reply || '';
+    const isAdm = /(?:^|\s)is_admin=1(?:\s|$)/.test(r);
+    const isOwn = /(?:^|\s)is_owner=1(?:\s|$)/.test(r);
+    const roleM = /(?:^|\s)role=([^\s]+)/.exec(r);
+    roleState.known = true;
+    roleState.isAdmin = isAdm || isOwn;
+    roleState.isOwner = isOwn;
+    roleState.role = roleM ? roleM[1] : (roleState.isAdmin ? 'admin' : 'player');
+    return roleState;
+  }
+
+  /** Зарегистрировать текущего TG-игрока в portal:users (SADD — без дубликатов). */
   function touchUser() {
     const owner = ownerId();
     if (owner === 'guest') {
       return Promise.resolve({ ok: false, skipped: true, err: 'guest' });
     }
-    return rpc('user.touch', Object.assign({ user: owner }, identityFields()));
+    return rpc('user.touch', Object.assign({ user: owner }, identityFields())).then(function (r) {
+      if (r && r.ok) applyRoleFromReply(r.reply);
+      const created = r && r.ok && /(?:^|\s)created=1(?:\s|$)/.test(r.reply || '');
+      return Object.assign({}, r || {}, {
+        created: !!created,
+        roleState: {
+          isAdmin: roleState.isAdmin,
+          isOwner: roleState.isOwner,
+          role: roleState.role,
+        },
+      });
+    });
   }
 
   /**
-   * admin.users_list → { ok, users:[{id,display,username,red,blue,premium}], ... }
+   * admin.users_list → { ok, users:[{id,display,username,red,blue,premium,role,isOwner}], ... }
    */
   function adminUsersList() {
     const owner = ownerId();
@@ -669,6 +725,8 @@
         if (!line) return;
         const p = line.split('|');
         if (p.length < 6) return;
+        const role = p[6] || 'player';
+        const isOwn = p[7] === '1' || p[0] === ownerTelegramId();
         users.push({
           id: p[0],
           display: p[1] || p[0],
@@ -676,9 +734,25 @@
           red: parseInt(p[3], 10) || 0,
           blue: parseInt(p[4], 10) || 0,
           premium: p[5] === '1',
+          role: role === 'admin' || isOwn ? 'admin' : 'player',
+          isAdmin: role === 'admin' || isOwn,
+          isOwner: isOwn,
         });
       });
-      return { ok: true, users: users, reply: r.reply, count: users.length };
+      const callerOwner = /(?:^|\s)caller_owner=1(?:\s|$)/.test(r.reply || '');
+      if (callerOwner) {
+        roleState.known = true;
+        roleState.isOwner = true;
+        roleState.isAdmin = true;
+        roleState.role = 'admin';
+      }
+      return {
+        ok: true,
+        users: users,
+        reply: r.reply,
+        count: users.length,
+        callerOwner: callerOwner || isOwner(),
+      };
     });
   }
 
@@ -700,11 +774,31 @@
       return Promise.resolve({ ok: false, err: 'admin_required' });
     }
     const on = !!active;
+    if (!on && !isOwner()) {
+      return Promise.resolve({ ok: false, err: 'owner_required' });
+    }
     return rpc('admin.premium_set', adminCallerFields({
       user: String(userId),
       five130: on ? '1' : '0',
       active: on ? '1' : '0',
       five130_until: '0',
+    }));
+  }
+
+  function adminRoleSet(userId, role) {
+    const owner = ownerId();
+    if (owner === 'guest' || !isAdmin()) {
+      return Promise.resolve({ ok: false, err: 'admin_required' });
+    }
+    const r = (role === 'admin' || role === true || role === 1 || role === '1')
+      ? 'admin'
+      : 'player';
+    if (r === 'player' && !isOwner()) {
+      return Promise.resolve({ ok: false, err: 'owner_required' });
+    }
+    return rpc('admin.role_set', adminCallerFields({
+      user: String(userId),
+      role: r,
     }));
   }
 
@@ -714,6 +808,7 @@
     telegramUser: telegramUser,
     telegramDisplayName: telegramDisplayName,
     isAdmin: isAdmin,
+    isOwner: isOwner,
     identityFields: identityFields,
     listMatches: listMatches,
     listMatchesMerged: listMatchesMerged,
@@ -733,6 +828,7 @@
     adminUsersList: adminUsersList,
     adminWalletSet: adminWalletSet,
     adminPremiumSet: adminPremiumSet,
+    adminRoleSet: adminRoleSet,
     saveCloudSnap: saveCloudSnap,
     saveCloudFull: saveCloudFull,
     cloudList: cloudList,
