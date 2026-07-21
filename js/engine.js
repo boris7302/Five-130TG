@@ -19,7 +19,7 @@
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.002";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 49;
+  const APP_REV = 50;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
@@ -475,11 +475,49 @@
     return false;
   }
 
+  /**
+   * Число камней в руке, содержащих масть (pip) s.
+   * Дубль s|s считается одним камнем масти s (RULES_125 §1.5).
+   */
+  function countSuitInHand(hand, s) {
+    let n = 0;
+    for (let i = 0; i < hand.length; i++) {
+      const t = hand[i];
+      if (t.lo === s || t.hi === s) n++;
+    }
+    return n;
+  }
+
+  /** true, если в руке ≥6 камней одной масти 0…6. */
+  function handHasSixOfOneSuit(hand) {
+    for (let s = 0; s <= 6; s++) {
+      if (countSuitInHand(hand, s) >= 6) return true;
+    }
+    return false;
+  }
+
+  /** §1.5: ни у кого после раздачи не должно быть 6+ камней одной масти. */
+  function dealViolatesSuitLimit(hands) {
+    return handHasSixOfOneSuit(hands[0]) || handHasSixOfOneSuit(hands[1]);
+  }
+
   function deal(round, rng) {
-    const deck = allTiles();
-    shuffle(deck, rng);
-    round.hands = [deck.slice(0, HAND_SIZE), deck.slice(HAND_SIZE, HAND_SIZE * 2)];
-    round.market = deck.slice(HAND_SIZE * 2);
+    // RULES_125 §1.5: пересдача, пока у кого-либо ≥6 камней одной масти.
+    let hands0;
+    let hands1;
+    let market;
+    let guard = 0;
+    do {
+      const deck = allTiles();
+      shuffle(deck, rng);
+      hands0 = deck.slice(0, HAND_SIZE);
+      hands1 = deck.slice(HAND_SIZE, HAND_SIZE * 2);
+      market = deck.slice(HAND_SIZE * 2);
+      guard++;
+    } while (dealViolatesSuitLimit([hands0, hands1]) && guard < 10000);
+
+    round.hands = [hands0, hands1];
+    round.market = market;
     round.board = newBoard();
     round.roundOver = false;
     round.winner = -1;

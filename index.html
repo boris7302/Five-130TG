@@ -6,12 +6,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#049)</title>
+  <title>Пятак-130 v0.002 (rev.#050)</title>
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '049';
+      var APP_HTML_REV = '050';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -525,7 +525,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#049)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#050)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -693,9 +693,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=049"></script>
-  <script src="js/match_store.js?v=049"></script>
-  <script src="js/engine.js?v=049"></script>
+  <script src="js/kv_parse.js?v=050"></script>
+  <script src="js/match_store.js?v=050"></script>
+  <script src="js/engine.js?v=050"></script>
   <script>
     (function () {
       try {
@@ -1992,6 +1992,7 @@
             '<ul>' +
             '<li>Играют двое стандартным комплектом домино <strong>0|0 … 6|6</strong> (28 камней).</li>' +
             '<li>Каждому раздаётся по <strong>7</strong> камней; остальные <strong>14</strong> — на <strong>рынке</strong> (базаре).</li>' +
+            '<li><strong>Нельзя</strong> раздавать <strong>6 или более камней одной масти</strong> (например шесть пятёрок: 3|5, 4|5, 5|6, 2|5, 5|5, 5|0). Если так выпало — <strong>пересдача</strong>, пока у обоих игроков меньше 6 камней по каждой масти 0…6.</li>' +
             '<li><strong>Игра</strong> (раунд) — одна раздача от первого камня до пустой руки, рыбы или блокировки.</li>' +
             '<li><strong>Партия</strong> — серия игр, пока не определится победитель по правилам Пятак-130.</li>' +
             '</ul>'
