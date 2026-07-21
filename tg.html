@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#053)</title>
+  <title>Пятак-130 v0.002 (rev.#054)</title>
   <!-- Не грузим telegram.org/js синхронно: при недоступности CDN Desktop WebView
        остаётся пустым (только заголовок бота). User берём из #tgWebAppData (MatchStore).
        Официальный скрипт — асинхронно ниже, с таймаутом. -->
@@ -14,7 +14,7 @@
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '053';
+      var APP_HTML_REV = '054';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -541,7 +541,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#053)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#054)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
     </div>
@@ -710,9 +710,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=053"></script>
-  <script src="js/match_store.js?v=053"></script>
-  <script src="js/engine.js?v=053"></script>
+  <script src="js/kv_parse.js?v=054"></script>
+  <script src="js/match_store.js?v=054"></script>
+  <script src="js/engine.js?v=054"></script>
   <script>
     (function () {
       function applyTelegramChrome(tw) {
@@ -1627,12 +1627,18 @@
           return msg;
         }
         if (c.ok) msg += ' · облако: снимок (L0)';
-        else msg += ' · облако: ошибка (' + (c.err || '?') + ')';
+        else if (c.err === 'network' && c.hint === 'https_blocks_http_localhost') {
+          msg += ' · облако: HTTPS-страница не может достучаться до http://127.0.0.1 (нужен HTTPS-туннель к five130d)';
+        } else {
+          msg += ' · облако: ошибка (' + (c.err || '?') + ')';
+        }
         var f = res.cloud_full;
         if (f) {
           if (f.ok) msg += ' · архив (L1/премиум)';
           else if (f.premium_required) msg += ' · архив: нужен премиум';
-          else if (f.err) msg += ' · архив: ' + f.err;
+          else if (f.err === 'network' && f.hint === 'https_blocks_http_localhost') {
+            msg += ' · архив: тот же HTTPS→localhost';
+          } else if (f.err) msg += ' · архив: ' + f.err;
         }
         return msg;
       }

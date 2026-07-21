@@ -232,12 +232,21 @@
         premium_required: !ok && errMatch && errMatch[1] === 'premium_required',
       };
     }).catch(function (e) {
+      var detail = String(e && e.message ? e.message : e);
+      var hint = '';
+      try {
+        var u = String(cloudCfg.url || '');
+        var pageHttps = global.location && global.location.protocol === 'https:';
+        var toLocal = /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:|\/|$)/i.test(u);
+        if (pageHttps && toLocal) hint = 'https_blocks_http_localhost';
+      } catch (e2) {}
       return {
         ok: false,
         skipped: false,
         reply: '',
         err: 'network',
-        detail: String(e && e.message ? e.message : e),
+        detail: detail,
+        hint: hint,
       };
     });
   }
