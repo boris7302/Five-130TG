@@ -291,10 +291,103 @@
     return global.Five130Kv.parseIndexDocument(text);
   }
 
+  function parseIdsFromListReply(reply) {
+    const m = /(?:^|\s)ids=([^\s]+)/.exec(reply || '');
+    if (!m || !m[1] || m[1] === '-') return [];
+    return m[1].split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+  }
+
+  /**
+   * Локальный индекс + облачный match.list (если TG user и cloud доступны).
+   * Подтягивает в IndexedDB тела из облака, которых нет локально.
+   */
+  async function listMatchesMerged() {
+    const local = await listMatches();
+    const owner = ownerId();
+    const byId = {};
+    (local.items || []).forEach(function (it) {
+      byId[it.id] = Object.assign({ source: 'local' }, it);
+    });
+
+    if (owner !== 'guest' && cloudCfg.enabled && cloudCfg.url) {
+      try {
+        const cl = await rpc('match.list', { user: owner });
+        if (cl && cl.ok && cl.reply) {
+          const ids = parseIdsFromListReply(cl.reply);
+          const cur = /(?:^|\s)current=([^\s]+)/.exec(cl.reply);
+          const current = cur && cur[1] !== '-' ? cur[1] : '';
+          for (let i = 0; i < ids.length; i++) {
+            const id = ids[i];
+            if (!byId[id]) {
+              byId[id] = {
+                id: id,
+                started: '',
+                game_type: 'five130',
+                final_score: '?',
+                result: 'cloud',
+                source: 'cloud',
+              };
+            } else {
+              byId[id].source = byId[id].source === 'local' ? 'both' : 'cloud';
+            }
+          }
+          if (current && !byId[current]) {
+            byId[current] = {
+              id: current,
+              started: '',
+              game_type: 'five130',
+              final_score: '?',
+              result: 'snap',
+              source: 'cloud_snap',
+            };
+          }
+        }
+      } catch (e) {}
+    }
+
+    const items = Object.keys(byId).map(function (k) { return byId[k]; });
+    items.sort(function (a, b) {
+      return String(b.id).localeCompare(String(a.id));
+    });
+    return { owner: owner, items: items };
+  }
+
   async function loadMatch(matchId) {
     const owner = ownerId();
-    const text = await idbGet(matchKey(owner, matchId));
-    return text || null;
+    let text = await idbGet(matchKey(owner, matchId));
+    if (text) return text;
+    // Fallback: облако L1 / L0
+    if (owner === 'guest' || !cloudCfg.enabled) return null;
+    try {
+      const got = await rpc('match.get', { user: owner, match_id: matchId });
+      if (got && got.ok && got.body) {
+        text = String(got.body);
+        const doc = global.Five130Kv.parseDocument(text);
+        await saveMatch(matchId, text, {
+          started: global.Five130Kv.getKv(doc, 'started', { meta: true }) || '',
+          game_type: global.Five130Kv.getKv(doc, 'game_type', { meta: true }) || 'five130',
+          final_score: global.Five130Kv.getKv(doc, 'final_score', { meta: true }) || '0,0',
+          result: 'cloud',
+        });
+        return text;
+      }
+      const snap = await rpc('match.get_snap', { user: owner });
+      if (snap && snap.ok && snap.body) {
+        const mid = /(?:^|\s)match_id=([^\s]+)/.exec(snap.reply || '');
+        if (mid && mid[1] === matchId) {
+          text = String(snap.body);
+          const doc = global.Five130Kv.parseDocument(text);
+          await saveMatch(matchId, text, {
+            started: global.Five130Kv.getKv(doc, 'started', { meta: true }) || '',
+            game_type: global.Five130Kv.getKv(doc, 'game_type', { meta: true }) || 'five130',
+            final_score: global.Five130Kv.getKv(doc, 'final_score', { meta: true }) || '0,0',
+            result: 'snap',
+          });
+          return text;
+        }
+      }
+    } catch (e) {}
+    return null;
   }
 
   async function saveMatch(matchId, matchText, meta) {
@@ -514,6 +607,7 @@
     telegramUser: telegramUser,
     telegramDisplayName: telegramDisplayName,
     listMatches: listMatches,
+    listMatchesMerged: listMatchesMerged,
     loadMatch: loadMatch,
     saveMatch: saveMatch,
     deleteMatch: deleteMatch,

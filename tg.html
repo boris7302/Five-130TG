@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#055)</title>
+  <title>Пятак-130 v0.002 (rev.#056)</title>
   <!-- Не грузим telegram.org/js синхронно: при недоступности CDN Desktop WebView
        остаётся пустым (только заголовок бота). User берём из #tgWebAppData (MatchStore).
        Официальный скрипт — асинхронно ниже, с таймаутом. -->
@@ -14,7 +14,7 @@
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '055';
+      var APP_HTML_REV = '056';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -361,29 +361,36 @@
     }
 
     /* Modal */
-    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal, #game-mode-modal {
+    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal, #game-mode-modal, #matches-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
     #modal.open, #debug-modal.open, #profile-modal.open, #spinner-modal.open,
-    #help-modal.open, #help-rules-modal.open, #help-usage-modal.open, #game-mode-modal.open { display: flex; }
+    #help-modal.open, #help-rules-modal.open, #help-usage-modal.open, #game-mode-modal.open,
+    #matches-modal.open { display: flex; }
     #modal .card, #debug-modal .card, #profile-modal .card, #spinner-modal .card,
-    #help-modal .card, #help-rules-modal .card, #help-usage-modal .card, #game-mode-modal .card {
+    #help-modal .card, #help-rules-modal .card, #help-usage-modal .card, #game-mode-modal .card,
+    #matches-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
     }
     #help-rules-modal .card, #help-usage-modal .card { width: min(520px, 100%); }
     #modal h2, #debug-modal h2, #profile-modal h2, #spinner-modal h2,
-    #help-modal h2, #help-rules-modal h2, #help-usage-modal h2, #game-mode-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #help-modal h2, #help-rules-modal h2, #help-usage-modal h2, #game-mode-modal h2,
+    #matches-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
     #modal .lines, #debug-modal .lines, #profile-modal .lines, #spinner-modal .lines,
-    #help-modal .lines, #game-mode-modal .lines { font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px; }
+    #help-modal .lines, #game-mode-modal .lines, #matches-modal .lines {
+      font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px;
+    }
     #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong, #spinner-modal .lines strong,
-    #help-modal .lines strong { color: var(--text); font-weight: 700; }
+    #help-modal .lines strong, #matches-modal .lines strong { color: var(--text); font-weight: 700; }
     #modal .btns, #debug-modal .btns, #profile-modal .btns, #spinner-modal .btns,
-    #help-modal .btns, #help-rules-modal .btns, #help-usage-modal .btns, #game-mode-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #help-modal .btns, #help-rules-modal .btns, #help-usage-modal .btns, #game-mode-modal .btns,
+    #matches-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
     #modal .btns button, #debug-modal .btns button, #profile-modal .btns button, #spinner-modal .btns button,
-    #help-modal .btns button, #help-rules-modal .btns button, #help-usage-modal .btns button, #game-mode-modal .btns button {
+    #help-modal .btns button, #help-rules-modal .btns button, #help-usage-modal .btns button, #game-mode-modal .btns button,
+    #matches-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
@@ -504,14 +511,20 @@
       border: 1px solid rgba(245,240,230,.4);
     }
 
-    #profile-modal .profile-list, #spinner-modal .spinner-list { display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px; }
-    #profile-modal .profile-opt, #spinner-modal .spinner-opt, #help-modal .profile-opt {
+    #profile-modal .profile-list, #spinner-modal .spinner-list, #matches-modal .matches-list {
+      display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px;
+      max-height: min(50vh, 360px); overflow: auto;
+    }
+    #profile-modal .profile-opt, #spinner-modal .spinner-opt, #help-modal .profile-opt,
+    #matches-modal .match-opt {
       display: flex; gap: 10px; align-items: flex-start;
       text-align: left; padding: 10px 12px; border-radius: 12px;
       border: 1px solid rgba(245,240,230,.3); background: rgba(0,0,0,.18);
       color: var(--text); cursor: pointer; font-size: 0.85rem;
       width: 100%;
     }
+    #matches-modal .match-opt .tag { flex: 0 0 auto; font-weight: 900; color: var(--accent); }
+    #matches-modal .match-opt .meta { color: var(--muted); font-size: 0.78rem; }
     #profile-modal .profile-opt.selected, #spinner-modal .spinner-opt.selected {
       border-color: var(--accent); background: rgba(201,162,39,.18);
     }
@@ -559,7 +572,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#055)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#056)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
       <div id="tg-premium" title="Премиум Five-130">Премиум</div>
@@ -718,6 +731,17 @@
     </div>
   </div>
 
+  <div id="matches-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Партии</h2>
+      <div class="lines" id="matches-modal-hint">Сохранённые партии (локально и в облаке).</div>
+      <div class="matches-list" id="matches-list"></div>
+      <div class="btns">
+        <button type="button" id="matches-close">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal" role="dialog" aria-modal="true">
     <div class="card">
       <h2 id="modal-title">Итоги игры</h2>
@@ -729,9 +753,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=055"></script>
-  <script src="js/match_store.js?v=055"></script>
-  <script src="js/engine.js?v=055"></script>
+  <script src="js/kv_parse.js?v=056"></script>
+  <script src="js/match_store.js?v=056"></script>
+  <script src="js/engine.js?v=056"></script>
   <script>
     (function () {
       function applyTelegramChrome(tw) {
@@ -1673,39 +1697,92 @@
       }
 
       function formatSaveStatus(res) {
-        var msg = 'Локально · ' + (res.match_id || '?');
-        var c = res.cloud;
-        if (!c || c.skipped) {
-          if (c && c.err === 'guest') {
-            var reason = c.reason || '';
-            var plat = c.platform ? ('/' + c.platform) : '';
-            if (reason === 'empty_init') {
-              msg += ' · облако: нет user в initData' + plat +
-                ' (reply-кнопка клавиатуры даёт пустой initData — Menu Button / inline web_app)';
-            } else if (reason === 'no_webapp') {
-              msg += ' · облако: нет Telegram.WebApp' + plat;
-            } else {
-              msg += ' · облако: нет Telegram user' + plat;
-            }
-          } else if (c && c.err === 'cloud_disabled') msg += ' · облако выкл.';
-          else msg += ' · облако недоступно';
-          return msg;
-        }
-        if (c.ok) msg += ' · облако: снимок (L0)';
-        else if (c.err === 'network' && c.hint === 'https_blocks_http_localhost') {
-          msg += ' · облако: HTTPS-страница не может достучаться до http://127.0.0.1 (нужен HTTPS-туннель к five130d)';
-        } else {
-          msg += ' · облако: ошибка (' + (c.err || '?') + ')';
-        }
-        var f = res.cloud_full;
-        if (f) {
-          if (f.ok) msg += ' · архив (L1/премиум)';
-          else if (f.premium_required) msg += ' · архив: нужен премиум';
-          else if (f.err === 'network' && f.hint === 'https_blocks_http_localhost') {
-            msg += ' · архив: тот же HTTPS→localhost';
-          } else if (f.err) msg += ' · архив: ' + f.err;
-        }
+        var id = (res && res.match_id) || '?';
+        var msg = 'Партия сохранена: ' + id;
+        var c = res && res.cloud;
+        var f = res && res.cloud_full;
+        if (f && f.ok) msg += '\nКопия в облаке (архив).';
+        else if (c && c.ok) msg += '\nКопия в облаке (снимок).';
+        else if (c && c.skipped && c.err === 'guest') msg += '\nТолько на этом устройстве.';
+        else if (c && !c.ok && !c.skipped) msg += '\nВ облако не удалось (сохранено здесь).';
         return msg;
+      }
+
+      function resultLabelRu(r) {
+        if (r === 'win') return 'победа';
+        if (r === 'lose') return 'поражение';
+        if (r === 'draw') return 'ничья';
+        if (r === 'cloud' || r === 'snap') return 'из облака';
+        return r || '';
+      }
+
+      function openMatchesModal() {
+        var list = document.getElementById('matches-list');
+        var hint = document.getElementById('matches-modal-hint');
+        var modalEl = document.getElementById('matches-modal');
+        if (!list || !modalEl || !window.Five130MatchStore) return;
+        list.innerHTML = '';
+        if (hint) hint.textContent = 'Загрузка…';
+        modalEl.classList.add('open');
+        var listFn = Five130MatchStore.listMatchesMerged || Five130MatchStore.listMatches;
+        listFn.call(Five130MatchStore).then(function (idx) {
+          if (hint) {
+            hint.textContent = idx.items.length
+              ? ('Найдено: ' + idx.items.length)
+              : 'Пока нет сохранённых партий.';
+          }
+          if (!idx.items.length) return;
+          idx.items.slice(0, 40).forEach(function (it, i) {
+            var b = document.createElement('button');
+            b.type = 'button';
+            b.className = 'match-opt';
+            var score = it.final_score && it.final_score !== '?' ? it.final_score : '—';
+            var src = it.source === 'cloud' || it.source === 'cloud_snap' ? 'облако'
+              : (it.source === 'both' ? 'локально+облако' : 'локально');
+            b.innerHTML =
+              '<span class="tag">' + (i + 1) + '</span>' +
+              '<span><strong>' + it.id + '</strong><br>' +
+              '<span class="meta">' + score +
+              (it.result ? ' · ' + resultLabelRu(it.result) : '') +
+              ' · ' + src + '</span></span>';
+            b.onclick = function () { openSavedMatch(it.id); };
+            list.appendChild(b);
+          });
+        }).catch(function (err) {
+          if (hint) hint.textContent = 'Ошибка списка: ' + String(err);
+        });
+      }
+
+      function openSavedMatch(matchId) {
+        if (!window.Five130MatchStore) return;
+        Five130MatchStore.loadMatch(matchId).then(function (text) {
+          if (!text) {
+            alert('Не удалось загрузить партию ' + matchId);
+            return;
+          }
+          var Kv = window.Five130Kv;
+          var doc = Kv.parseDocument(text);
+          var score = Kv.getKv(doc, 'final_score', { meta: true }) ||
+            Kv.getKv(doc, 'final_score') || '—';
+          var winner = Kv.getKv(doc, 'match_winner', { meta: true });
+          var draw = Kv.getKv(doc, 'match_draw', { meta: true });
+          var started = Kv.getKv(doc, 'started', { meta: true }) || '';
+          var outcome = 'в процессе';
+          if (draw === '1') outcome = 'ничья';
+          else if (winner === '0') outcome = 'победа';
+          else if (winner === '1') outcome = 'поражение';
+          document.getElementById('matches-modal').classList.remove('open');
+          alert(
+            'Партия: ' + matchId + '\n' +
+            (started ? ('Начало: ' + started + '\n') : '') +
+            'Счёт: ' + score + '\n' +
+            'Итог: ' + outcome + '\n\n' +
+            '(Полный разбор ходов на столе — в следующей версии.)'
+          );
+          setStoreStatus('Открыта партия: ' + matchId + ' · ' + score);
+        }).catch(function (err) {
+          alert(String(err));
+        });
       }
 
       var lastDebugText = '';
@@ -2116,17 +2193,9 @@
         }).catch(function (err) { alert(String(err)); });
       };
 
-      document.getElementById('list').onclick = function () {
-        if (!window.Five130MatchStore) return;
-        Five130MatchStore.listMatches().then(function (idx) {
-          if (!idx.items.length) {
-            alert('Партий нет (owner=' + idx.owner + ')');
-            return;
-          }
-          alert(idx.items.slice(0, 12).map(function (it, i) {
-            return (i + 1) + '. ' + it.id + ' · ' + it.final_score + ' · ' + it.result;
-          }).join('\n'));
-        });
+      document.getElementById('list').onclick = openMatchesModal;
+      document.getElementById('matches-close').onclick = function () {
+        document.getElementById('matches-modal').classList.remove('open');
       };
 
       document.getElementById('debug').onclick = runDebugExport;
@@ -2306,7 +2375,8 @@
             '<h3>Партия и настройки</h3>' +
             '<ul>' +
             '<li>После игры открывается окно итогов — «Продолжить» или «Сохранить». Новая игра сама не начинается.</li>' +
-            '<li>«Сохранить» / «Партии» — запись в памяти приложения (IndexedDB).</li>' +
+            '<li>«Сохранить» — партия на устройстве и (если есть связь) в облаке.</li>' +
+            '<li>«Партии» — список локальных и облачных сохранений; нажатие показывает итог.</li>' +
             '<li>Облако (Valkey): для аккаунта Telegram — снимок resume (L0); полный архив — при премиуме Five130TG (L1).</li>' +
             '<li>Без премиума партия всё равно сохраняется локально; статус покажет «нужен премиум» для архива.</li>' +
             '<li>Выбор стиля якоря и профиля раскладки запоминается на устройстве.</li>' +
