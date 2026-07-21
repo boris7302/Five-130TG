@@ -6,14 +6,15 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#052)</title>
-  <!-- Official bridge: Desktop/WebView передаёт user в #tgWebAppData; без скрипта initDataUnsafe.user часто пуст. -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <title>Пятак-130 v0.002 (rev.#053)</title>
+  <!-- Не грузим telegram.org/js синхронно: при недоступности CDN Desktop WebView
+       остаётся пустым (только заголовок бота). User берём из #tgWebAppData (MatchStore).
+       Официальный скрипт — асинхронно ниже, с таймаутом. -->
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '052';
+      var APP_HTML_REV = '053';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -540,7 +541,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#052)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#053)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
     </div>
@@ -709,14 +710,14 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=052"></script>
-  <script src="js/match_store.js?v=052"></script>
-  <script src="js/engine.js?v=052"></script>
+  <script src="js/kv_parse.js?v=053"></script>
+  <script src="js/match_store.js?v=053"></script>
+  <script src="js/engine.js?v=053"></script>
   <script>
     (function () {
-      try {
-        var tw = window.Telegram && window.Telegram.WebApp;
-        if (tw) {
+      function applyTelegramChrome(tw) {
+        try {
+          if (!tw) return;
           if (typeof tw.ready === 'function') tw.ready();
           if (typeof tw.expand === 'function') tw.expand();
           var plat = String(tw.platform || '').toLowerCase();
@@ -724,9 +725,74 @@
           if (isDesktop) {
             document.documentElement.classList.add('ui-desktop');
             if (typeof tw.setHeaderColor === 'function') tw.setHeaderColor('#1b4d3e');
-            if (typeof tw.requestFullscreen === 'function') tw.requestFullscreen();
+            /* requestFullscreen на tdesktop часто схлопывает Mini App до полоски заголовка — не вызываем. */
+          } else if (window.innerWidth > 520) {
+            document.documentElement.classList.add('ui-desktop');
           }
-        } else if (window.innerWidth > 520) {
+        } catch (e) {}
+      }
+
+      /* Локальный разбор launch-параметров, если CDN telegram-web-app.js недоступен. */
+      (function bootstrapTelegramFromHash() {
+        try {
+          if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) return;
+          var hash = String(location.hash || '').replace(/^#/, '');
+          if (!hash) return;
+          var hp = new URLSearchParams(hash);
+          var raw = hp.get('tgWebAppData');
+          if (!raw) return;
+          try { raw = decodeURIComponent(raw); } catch (e1) {}
+          var user = null;
+          try {
+            var u = new URLSearchParams(raw).get('user');
+            if (u) user = JSON.parse(u);
+          } catch (e2) {}
+          window.Telegram = window.Telegram || {};
+          window.Telegram.WebApp = window.Telegram.WebApp || {
+            initData: raw,
+            initDataUnsafe: { user: user },
+            platform: hp.get('tgWebAppPlatform') || 'unknown',
+            ready: function () {},
+            expand: function () {},
+            version: 'bootstrap'
+          };
+          if (!window.Telegram.WebApp.initData) window.Telegram.WebApp.initData = raw;
+          if (!window.Telegram.WebApp.initDataUnsafe) {
+            window.Telegram.WebApp.initDataUnsafe = { user: user };
+          } else if (!window.Telegram.WebApp.initDataUnsafe.user && user) {
+            window.Telegram.WebApp.initDataUnsafe.user = user;
+          }
+        } catch (e) {}
+      })();
+
+      applyTelegramChrome(window.Telegram && window.Telegram.WebApp);
+
+      /* Неблокирующая попытка официального скрипта (для theme/expand на части клиентов). */
+      (function loadOfficialTgScript() {
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.version !== 'bootstrap') {
+          return;
+        }
+        var done = false;
+        var s = document.createElement('script');
+        s.src = 'https://telegram.org/js/telegram-web-app.js';
+        s.async = true;
+        s.onload = function () {
+          if (done) return;
+          done = true;
+          applyTelegramChrome(window.Telegram && window.Telegram.WebApp);
+          if (typeof updateTgUserBadge === 'function') updateTgUserBadge();
+        };
+        s.onerror = function () { done = true; };
+        document.head.appendChild(s);
+        setTimeout(function () {
+          if (done) return;
+          done = true;
+          try { s.remove(); } catch (e) {}
+        }, 2500);
+      })();
+
+      try {
+        if (!(window.Telegram && window.Telegram.WebApp) && window.innerWidth > 520) {
           document.documentElement.classList.add('ui-desktop');
         }
       } catch (e) {}
