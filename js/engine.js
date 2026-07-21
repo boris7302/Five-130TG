@@ -19,7 +19,7 @@
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.002";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 50;
+  const APP_REV = 52;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
@@ -1260,5 +1260,24 @@
     scoringEndsPipSum: scoringEndsPipSum,
     leftoverHandPenalty: leftoverHandPenalty,
     buildDebugDump: buildDebugDump,
+    /** RULES_125 §1.5 — для тестов и отладки. */
+    countSuitInHand: countSuitInHand,
+    handHasSixOfOneSuit: handHasSixOfOneSuit,
+    dealViolatesSuitLimit: dealViolatesSuitLimit,
+    /**
+     * Одна попытка раздачи без пересдачи (тот же shuffle, что в deal).
+     * @param {number} seed
+     * @return {{hands:object[][], violates:boolean}}
+     */
+    probeDealOnce: function (seed) {
+      const rng = mulberry32(seed >>> 0);
+      const deck = allTiles();
+      shuffle(deck, rng);
+      const hands = [
+        deck.slice(0, HAND_SIZE),
+        deck.slice(HAND_SIZE, HAND_SIZE * 2),
+      ];
+      return { hands: hands, violates: dealViolatesSuitLimit(hands) };
+    },
   };
 })(typeof window !== 'undefined' ? window : globalThis);

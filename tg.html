@@ -6,12 +6,14 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Пятак-130 v0.002 (rev.#050)</title>
+  <title>Пятак-130 v0.002 (rev.#052)</title>
+  <!-- Official bridge: Desktop/WebView передаёт user в #tgWebAppData; без скрипта initDataUnsafe.user часто пуст. -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '050';
+      var APP_HTML_REV = '052';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -89,6 +91,18 @@
       white-space: nowrap;
       text-shadow: 0 0 8px rgba(255, 210, 74, 0.35);
     }
+    #tg-user {
+      margin-top: 2px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+    }
+    #tg-user.guest { color: var(--muted); font-weight: 600; }
     .hdr-center {
       display: flex; align-items: baseline; justify-content: center; gap: 8px;
       white-space: nowrap;
@@ -170,6 +184,7 @@
       header h1 { font-size: 0.95rem; }
       .ver { display: block; margin-left: 0; font-size: 0.58rem; line-height: 1.2; }
       #matchup { font-size: 0.82rem; }
+      #tg-user { font-size: 0.66rem; }
       :root { --clock-size: 1.05rem; }
       #weekday { font-size: 0.82rem; }
       .stat-value { font-size: 1.02rem; }
@@ -525,8 +540,9 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#050)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#052)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
+      <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
     </div>
     <div class="hdr-center" title="Дата и время">
       <div id="clock">--/--/-- --:--:--</div>
@@ -693,9 +709,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=050"></script>
-  <script src="js/match_store.js?v=050"></script>
-  <script src="js/engine.js?v=050"></script>
+  <script src="js/kv_parse.js?v=052"></script>
+  <script src="js/match_store.js?v=052"></script>
+  <script src="js/engine.js?v=052"></script>
   <script>
     (function () {
       try {
@@ -762,13 +778,36 @@
 
       function telegramUserName() {
         try {
+          var Store = window.Five130MatchStore;
+          if (Store && typeof Store.telegramDisplayName === 'function') {
+            return Store.telegramDisplayName();
+          }
           var tw = window.Telegram && window.Telegram.WebApp;
           var u = tw && tw.initDataUnsafe && tw.initDataUnsafe.user;
           if (!u) return null;
-          if (u.first_name) return u.first_name;
+          if (u.first_name) {
+            return u.last_name ? (u.first_name + ' ' + u.last_name) : u.first_name;
+          }
           if (u.username) return '@' + u.username;
         } catch (e) {}
         return null;
+      }
+
+      function updateTgUserBadge() {
+        var el = document.getElementById('tg-user');
+        if (!el) return;
+        var name = telegramUserName();
+        var Store = window.Five130MatchStore;
+        var id = Store && Store.ownerId ? Store.ownerId() : 'guest';
+        if (name && id !== 'guest') {
+          el.textContent = 'TG: ' + name;
+          el.classList.remove('guest');
+          el.title = 'Telegram: ' + name + ' (id ' + id + ')';
+        } else {
+          el.textContent = 'TG: гость';
+          el.classList.add('guest');
+          el.title = 'Telegram user не передан (облако только локально)';
+        }
       }
 
       function isPvpMode() {
@@ -797,6 +836,7 @@
         cfgBoard.playerName0 = names[0];
         cfgBoard.playerName1 = names[1];
         updateMatchup();
+        updateTgUserBadge();
         if (stonesP0) stonesP0.textContent = shortPlayerLabel(names[0]);
         if (stonesP1) stonesP1.textContent = shortPlayerLabel(names[1]);
       }
@@ -1505,8 +1545,18 @@
         var msg = 'Локально · ' + (res.match_id || '?');
         var c = res.cloud;
         if (!c || c.skipped) {
-          if (c && c.err === 'guest') msg += ' · облако: войдите через Telegram';
-          else if (c && c.err === 'cloud_disabled') msg += ' · облако выкл.';
+          if (c && c.err === 'guest') {
+            var reason = c.reason || '';
+            var plat = c.platform ? ('/' + c.platform) : '';
+            if (reason === 'empty_init') {
+              msg += ' · облако: нет user в initData' + plat +
+                ' (reply-кнопка клавиатуры даёт пустой initData — Menu Button / inline web_app)';
+            } else if (reason === 'no_webapp') {
+              msg += ' · облако: нет Telegram.WebApp' + plat;
+            } else {
+              msg += ' · облако: нет Telegram user' + plat;
+            }
+          } else if (c && c.err === 'cloud_disabled') msg += ' · облако выкл.';
           else msg += ' · облако недоступно';
           return msg;
         }
@@ -1587,6 +1637,10 @@
         var b = cfgBoard.playerName1 || 'ИИ';
         el.textContent = a + ' vs ' + b;
       }
+      updateTgUserBadge();
+      /* Desktop иногда заполняет initData чуть позже ready(). */
+      setTimeout(updateTgUserBadge, 300);
+      setTimeout(updateTgUserBadge, 1200);
       setInterval(updateClock, 1000);
       updateClock();
 

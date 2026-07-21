@@ -61,13 +61,109 @@
     });
   }
 
-  function ownerId() {
+  /** Parse user object from raw WebApp initData query string. */
+  function parseUserFromInitData(raw) {
+    if (!raw || typeof raw !== 'string') return null;
+    try {
+      const params = new URLSearchParams(raw);
+      const user = params.get('user');
+      if (!user) return null;
+      const u = JSON.parse(user);
+      if (u && u.id != null) return u;
+    } catch (e) {}
+    return null;
+  }
+
+  function parseUserIdFromInitData(raw) {
+    const u = parseUserFromInitData(raw);
+    return u && u.id != null ? String(u.id) : null;
+  }
+
+  /** Raw tgWebAppData from hash/query (Desktop launch params). */
+  function launchInitDataRaw() {
+    try {
+      const loc = global.location;
+      if (!loc) return null;
+      const hash = String(loc.hash || '').replace(/^#/, '');
+      let raw = null;
+      if (hash) {
+        const hp = new URLSearchParams(hash);
+        raw = hp.get('tgWebAppData');
+      }
+      if (!raw && loc.search) {
+        const qp = new URLSearchParams(loc.search);
+        raw = qp.get('tgWebAppData');
+      }
+      if (!raw) return null;
+      try { raw = decodeURIComponent(raw); } catch (e) {}
+      return raw;
+    } catch (e) {}
+    return null;
+  }
+
+  /**
+   * Telegram user from WebApp / initData / launch URL.
+   * @returns {{ id: string, first_name?: string, last_name?: string, username?: string }|null}
+   */
+  function telegramUser() {
     try {
       const tw = global.Telegram && global.Telegram.WebApp;
-      const u = tw && tw.initDataUnsafe && tw.initDataUnsafe.user;
-      if (u && u.id != null) return String(u.id);
+      let u = tw && tw.initDataUnsafe && tw.initDataUnsafe.user;
+      if (!u && tw && tw.initData) u = parseUserFromInitData(tw.initData);
+      if (!u) u = parseUserFromInitData(launchInitDataRaw());
+      if (u && u.id != null) {
+        return {
+          id: String(u.id),
+          first_name: u.first_name || '',
+          last_name: u.last_name || '',
+          username: u.username || '',
+        };
+      }
     } catch (e) {}
-    return 'guest';
+    return null;
+  }
+
+  /** Display name for UI: first_name, else @username, else id. */
+  function telegramDisplayName() {
+    const u = telegramUser();
+    if (!u) return null;
+    if (u.first_name) {
+      return u.last_name ? (u.first_name + ' ' + u.last_name) : u.first_name;
+    }
+    if (u.username) return '@' + u.username;
+    return u.id;
+  }
+
+  function ownerId() {
+    const u = telegramUser();
+    return u ? u.id : 'guest';
+  }
+
+  /**
+   * Why cloud sees guest — for UI (Desktop Mini App vs reply-keyboard).
+   * @returns {{ owner: string, reason: string, platform: string }}
+   */
+  function ownerDiag() {
+    const owner = ownerId();
+    let platform = '';
+    try {
+      const tw = global.Telegram && global.Telegram.WebApp;
+      platform = (tw && tw.platform) ? String(tw.platform) : '';
+      if (owner !== 'guest') {
+        return { owner: owner, reason: 'ok', platform: platform };
+      }
+      if (!tw) {
+        return { owner: 'guest', reason: 'no_webapp', platform: platform };
+      }
+      const hasInit = !!(tw.initData && String(tw.initData).length);
+      const hasUnsafeUser = !!(tw.initDataUnsafe && tw.initDataUnsafe.user);
+      if (!hasInit && !hasUnsafeUser && !launchInitDataRaw()) {
+        return { owner: 'guest', reason: 'empty_init', platform: platform };
+      }
+      return { owner: 'guest', reason: 'no_user', platform: platform };
+    } catch (e) {
+      return { owner: 'guest', reason: 'error', platform: platform };
+    }
   }
 
   function indexKey(owner) { return 'idx:' + owner; }
@@ -190,9 +286,17 @@
     const local = await saveMatch(matchId, matchText, meta);
     const owner = ownerId();
     if (owner === 'guest') {
+      const diag = ownerDiag();
       return {
         local: local,
-        cloud: { ok: false, skipped: true, err: 'guest', hint: 'local_only' },
+        cloud: {
+          ok: false,
+          skipped: true,
+          err: 'guest',
+          hint: 'local_only',
+          reason: diag.reason,
+          platform: diag.platform,
+        },
       };
     }
     const cloud = await rpc('match.save_snap', {
@@ -210,9 +314,17 @@
     const local = await saveMatch(matchId, matchText, meta);
     const owner = ownerId();
     if (owner === 'guest') {
+      const diag = ownerDiag();
       return {
         local: local,
-        cloud: { ok: false, skipped: true, err: 'guest', hint: 'local_only' },
+        cloud: {
+          ok: false,
+          skipped: true,
+          err: 'guest',
+          hint: 'local_only',
+          reason: diag.reason,
+          platform: diag.platform,
+        },
       };
     }
     const cloud = await rpc('match.save_full', {
@@ -358,6 +470,9 @@
 
   global.Five130MatchStore = {
     ownerId: ownerId,
+    ownerDiag: ownerDiag,
+    telegramUser: telegramUser,
+    telegramDisplayName: telegramDisplayName,
     listMatches: listMatches,
     loadMatch: loadMatch,
     saveMatch: saveMatch,
