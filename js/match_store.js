@@ -703,6 +703,38 @@
   }
 
   /**
+   * wallet.get → { ok, red, blue, user } | skipped/err
+   */
+  function getWallet(user) {
+    const u = user != null ? String(user) : ownerId();
+    if (!u || u === 'guest') {
+      return Promise.resolve({ ok: false, skipped: true, err: 'guest', red: 0, blue: 0 });
+    }
+    return rpc('wallet.get', Object.assign({ user: u }, identityFields())).then(function (r) {
+      if (!r || r.skipped || !r.ok) {
+        return {
+          ok: false,
+          skipped: !!(r && r.skipped),
+          err: (r && r.err) || 'rpc_failed',
+          red: 0,
+          blue: 0,
+          user: u,
+        };
+      }
+      const reply = r.reply || '';
+      const redM = /(?:^|\s)red=([^\s]+)/.exec(reply);
+      const blueM = /(?:^|\s)blue=([^\s]+)/.exec(reply);
+      return {
+        ok: true,
+        red: redM ? (parseInt(redM[1], 10) || 0) : 0,
+        blue: blueM ? (parseInt(blueM[1], 10) || 0) : 0,
+        user: u,
+        reply: reply,
+      };
+    });
+  }
+
+  /**
    * admin.users_list → { ok, users:[{id,display,username,red,blue,premium,role,isOwner}], ... }
    */
   function adminUsersList() {
@@ -825,6 +857,7 @@
     cloudStatus: cloudStatus,
     getPremiumStatus: getPremiumStatus,
     touchUser: touchUser,
+    getWallet: getWallet,
     adminUsersList: adminUsersList,
     adminWalletSet: adminWalletSet,
     adminPremiumSet: adminPremiumSet,

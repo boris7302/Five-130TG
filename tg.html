@@ -121,6 +121,36 @@
       box-shadow: 0 0 8px rgba(232, 197, 71, 0.35);
     }
     #tg-premium.on { display: inline-block; }
+    #tg-wallet {
+      display: none;
+      margin-top: 3px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      color: var(--text);
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    #tg-wallet.on { display: inline-flex; align-items: center; gap: 8px; }
+    #tg-wallet .w-item {
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    #tg-wallet .dot {
+      width: 0.7em; height: 0.7em; border-radius: 50%;
+      box-shadow: 0 0 4px rgba(0,0,0,.35);
+      flex: 0 0 auto;
+    }
+    #tg-wallet .dot-red, .pt-dot.dot-red {
+      background: radial-gradient(circle at 35% 30%, #ff8a8a, #e11d2e 55%, #8b0000);
+    }
+    #tg-wallet .dot-blue, .pt-dot.dot-blue {
+      background: radial-gradient(circle at 35% 30%, #9ec5ff, #1d6fe1 55%, #0a3a8b);
+    }
+    .pt-dot {
+      display: inline-block; width: 0.65em; height: 0.65em; border-radius: 50%;
+      vertical-align: -0.05em; margin-right: 2px;
+      box-shadow: 0 0 3px rgba(0,0,0,.3);
+    }
     .hdr-center {
       display: flex; align-items: baseline; justify-content: center; gap: 8px;
       white-space: nowrap;
@@ -204,6 +234,7 @@
       #matchup { font-size: 0.82rem; }
       #tg-user { font-size: 0.66rem; }
       #tg-premium { font-size: 0.62rem; }
+      #tg-wallet { font-size: 0.64rem; gap: 6px; }
       :root { --clock-size: 1.05rem; }
       #weekday { font-size: 0.82rem; }
       .stat-value { font-size: 1.02rem; }
@@ -614,9 +645,13 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.003 (rev.#060)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.003 (rev.#061)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
+      <div id="tg-wallet" title="Баллы портала: красные (покупные) и синие (наградные)">
+        <span class="w-item"><span class="dot dot-red" aria-hidden="true"></span><span id="tg-red">0</span></span>
+        <span class="w-item"><span class="dot dot-blue" aria-hidden="true"></span><span id="tg-blue">0</span></span>
+      </div>
       <div id="tg-premium" title="Премиум Five-130">Премиум</div>
     </div>
     <div class="hdr-center" title="Дата и время">
@@ -792,8 +827,8 @@
       <div class="admin-add" id="admin-add">
         <div class="lines" style="margin:0"><strong>Игрок по id</strong> — в т.ч. ещё не заходивший</div>
         <label>Telegram id <input type="text" id="admin-add-id" inputmode="numeric" placeholder="545375021"></label>
-        <label>Красные <input type="number" id="admin-add-red" min="0" step="1" value="0"></label>
-        <label>Синие <input type="number" id="admin-add-blue" min="0" step="1" value="0"></label>
+        <label><span class="pt-dot dot-red" aria-hidden="true"></span>Красные <input type="number" id="admin-add-red" min="0" step="1" value="0"></label>
+        <label><span class="pt-dot dot-blue" aria-hidden="true"></span>Синие <input type="number" id="admin-add-blue" min="0" step="1" value="0"></label>
         <label>Сделать админом <input type="checkbox" id="admin-add-role"></label>
         <div class="btns">
           <button type="button" id="admin-add-apply">Начислить</button>
@@ -802,8 +837,8 @@
       <div class="admin-list" id="admin-list"></div>
       <div class="admin-edit" id="admin-edit">
         <div class="lines" id="admin-edit-title">Игрок</div>
-        <label>Красные <input type="number" id="admin-red" min="0" step="1" value="0"></label>
-        <label>Синие <input type="number" id="admin-blue" min="0" step="1" value="0"></label>
+        <label><span class="pt-dot dot-red" aria-hidden="true"></span>Красные <input type="number" id="admin-red" min="0" step="1" value="0"></label>
+        <label><span class="pt-dot dot-blue" aria-hidden="true"></span>Синие <input type="number" id="admin-blue" min="0" step="1" value="0"></label>
         <label>Премиум <input type="checkbox" id="admin-premium"></label>
         <label>Админ <input type="checkbox" id="admin-role"></label>
         <div class="lines" id="admin-edit-hint" style="font-size:0.78rem;margin:0"></div>
@@ -829,9 +864,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=060"></script>
-  <script src="js/match_store.js?v=060"></script>
-  <script src="js/engine.js?v=060"></script>
+  <script src="js/kv_parse.js?v=061"></script>
+  <script src="js/match_store.js?v=061"></script>
+  <script src="js/engine.js?v=061"></script>
   <script>
     (function () {
       function applyTelegramChrome(tw) {
@@ -1021,6 +1056,40 @@
         });
       }
 
+      function setWalletBadge(red, blue, detail) {
+        var wrap = document.getElementById('tg-wallet');
+        var rEl = document.getElementById('tg-red');
+        var bEl = document.getElementById('tg-blue');
+        if (!wrap || !rEl || !bEl) return;
+        rEl.textContent = String(red == null ? 0 : red);
+        bEl.textContent = String(blue == null ? 0 : blue);
+        wrap.classList.add('on');
+        wrap.title = detail ||
+          ('Баллы: красные (покупные) ' + red + ', синие (наградные) ' + blue);
+      }
+
+      function refreshWalletBadge() {
+        var Store = window.Five130MatchStore;
+        var wrap = document.getElementById('tg-wallet');
+        if (!Store || !wrap || !Store.getWallet) return;
+        var id = Store.ownerId ? Store.ownerId() : 'guest';
+        if (id === 'guest') {
+          wrap.classList.remove('on');
+          return;
+        }
+        Store.getWallet(id).then(function (w) {
+          if (!w || w.skipped || !w.ok) {
+            // Показать нули, если TG есть, но облако временно недоступно.
+            setWalletBadge(0, 0, 'Баллы: облако недоступно' +
+              (w && w.err ? ' (' + w.err + ')' : ''));
+            return;
+          }
+          setWalletBadge(w.red, w.blue);
+        }).catch(function () {
+          setWalletBadge(0, 0, 'Баллы: ошибка загрузки');
+        });
+      }
+
       function updateTgUserBadge() {
         var el = document.getElementById('tg-user');
         if (!el) return;
@@ -1035,8 +1104,11 @@
           el.textContent = 'TG: гость';
           el.classList.add('guest');
           el.title = 'Telegram user не передан (облако только локально)';
+          var w = document.getElementById('tg-wallet');
+          if (w) w.classList.remove('on');
         }
         refreshPremiumBadge();
+        refreshWalletBadge();
         refreshAdminButton();
       }
 
@@ -1154,7 +1226,8 @@
               '<span class="tag">' + escapeHtml(name) + '</span>' +
               '<span class="meta">' + escapeHtml(un) +
               ' · ' + role +
-              ' · красн. ' + (u.red || 0) + ' · син. ' + (u.blue || 0) +
+              ' · <span class="pt-dot dot-red"></span>' + (u.red || 0) +
+              ' · <span class="pt-dot dot-blue"></span>' + (u.blue || 0) +
               ' · ' + prem + '<br>id ' + escapeHtml(u.id) + '</span></button>';
           }).join('');
           Array.prototype.forEach.call(list.querySelectorAll('.admin-opt'), function (el) {
@@ -1205,6 +1278,7 @@
             setStoreStatus((created ? 'Создан и начислено: ' : 'Начислено: ') + tid);
             if (idEl) idEl.value = '';
             if (roleEl) roleEl.checked = false;
+            refreshWalletBadge();
             openAdminModal();
           } else {
             setStoreStatus('Не начислено: ' + (bad.err || 'ошибка'));
@@ -1254,6 +1328,7 @@
             setStoreStatus('Сохранено: ' + (adminPick.display || adminPick.id));
             openAdminModal();
             refreshPremiumBadge();
+            refreshWalletBadge();
             refreshAdminButton();
           } else {
             setStoreStatus('Не сохранено: ' + (bad.err || 'ошибка'));
@@ -2326,6 +2401,7 @@
                 Five130MatchStore.touchUser().then(function (tr) {
                   refreshAdminButton();
                   updateTgUserBadge();
+                  refreshWalletBadge();
                   if (tr && tr.ok && tr.created) {
                     setStoreStatus('Вы в списке игроков (новый вход)');
                   }
