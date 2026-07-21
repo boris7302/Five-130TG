@@ -11,8 +11,8 @@
   const DB_VERSION = 1;
   const STORE = 'kv';
 
-  /** @type {{ url: string, enabled: boolean }} */
-  var cloudCfg = { url: '', enabled: false };
+  /** @type {{ url: string, enabled: boolean, adminIds: string[] }} */
+  var cloudCfg = { url: '', enabled: false, adminIds: ['545375021'] };
 
   function openDb() {
     return new Promise(function (resolve, reject) {
@@ -139,6 +139,35 @@
     return u ? u.id : 'guest';
   }
 
+  /** Поля профиля для RPC (имя / @username). */
+  function identityFields() {
+    const u = telegramUser();
+    if (!u) return {};
+    const out = {};
+    const name = telegramDisplayName();
+    if (name) out.display_name = name;
+    if (u.username) out.username = u.username;
+    return out;
+  }
+
+  function adminIds() {
+    return (cloudCfg.adminIds && cloudCfg.adminIds.length)
+      ? cloudCfg.adminIds
+      : ['545375021'];
+  }
+
+  /** Локальная проверка allowlist (кнопка «Админ»). Сервер всё равно проверяет admin=. */
+  function isAdmin() {
+    const id = ownerId();
+    return id !== 'guest' && adminIds().indexOf(id) >= 0;
+  }
+
+  function adminCallerFields(extra) {
+    const fields = Object.assign({}, identityFields(), extra || {});
+    fields.admin = ownerId();
+    return fields;
+  }
+
   /**
    * Why cloud sees guest — for UI (Desktop Mini App vs reply-keyboard).
    * @returns {{ owner: string, reason: string, platform: string }}
@@ -192,6 +221,8 @@
       url: cloudCfg.url,
       owner: ownerId(),
       canCloud: ownerId() !== 'guest',
+      isAdmin: isAdmin(),
+      adminIds: adminIds().slice(),
     };
   }
 
@@ -203,7 +234,7 @@
     if (!u || u === 'guest') {
       return Promise.resolve({ active: false, skipped: true, err: 'guest' });
     }
-    return rpc('premium.get', { user: u }).then(function (r) {
+    return rpc('premium.get', Object.assign({ user: u }, identityFields())).then(function (r) {
       if (!r || r.skipped || !r.ok) {
         return {
           active: false,
@@ -432,11 +463,11 @@
         },
       };
     }
-    const cloud = await rpc('match.save_snap', {
+    const cloud = await rpc('match.save_snap', Object.assign({
       user: owner,
       match_id: matchId,
       game_id: (meta && meta.game_type) || 'five130',
-    }, matchText);
+    }, identityFields()), matchText);
     return { local: local, cloud: cloud };
   }
 
@@ -460,13 +491,13 @@
         },
       };
     }
-    const cloud = await rpc('match.save_full', {
+    const cloud = await rpc('match.save_full', Object.assign({
       user: owner,
       match_id: matchId,
       game_id: (meta && meta.game_type) || 'five130',
       scores: (meta && meta.final_score) || '0,0',
       mode: (meta && meta.mode) || 'ai',
-    }, matchText);
+    }, identityFields()), matchText);
     return { local: local, cloud: cloud };
   }
 
@@ -543,13 +574,13 @@
     const snap = await saveCloudSnap(matchId, text, meta);
     let full = null;
     if (snap.cloud && !snap.cloud.skipped && owner !== 'guest') {
-      full = await rpc('match.save_full', {
+      full = await rpc('match.save_full', Object.assign({
         user: owner,
         match_id: matchId,
         game_id: meta.game_type || 'five130',
         scores: score,
         mode: meta.mode || 'ai',
-      }, text);
+      }, identityFields()), text);
     }
     return {
       match_id: matchId,
@@ -584,11 +615,12 @@
     };
   }
 
-  /** Разбор server.cloud_url из текста cfg (key=value). */
+  /** Разбор server.cloud_url / admin ids из текста cfg (key=value). */
   function configureCloudFromCfgText(cfgText) {
     if (!cfgText) return cloudCfg;
     var url = '';
     var enabled = true;
+    var admins = null;
     String(cfgText).split(/\r?\n/).forEach(function (line) {
       var t = line.replace(/#.*$/, '').trim();
       var eq = t.indexOf('=');
@@ -597,8 +629,83 @@
       var v = t.slice(eq + 1).trim();
       if (k === 'server.cloud_url') url = v;
       if (k === 'server.http.enabled') enabled = (v === '1' || v === 'true');
+      if (k === 'server.admin.telegram_ids') {
+        admins = v.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      }
     });
+    if (admins && admins.length) cloudCfg.adminIds = admins;
     return configureCloud({ url: url, enabled: enabled && !!url });
+  }
+
+  /** Зарегистрировать текущего TG-игрока в portal:users. */
+  function touchUser() {
+    const owner = ownerId();
+    if (owner === 'guest') {
+      return Promise.resolve({ ok: false, skipped: true, err: 'guest' });
+    }
+    return rpc('user.touch', Object.assign({ user: owner }, identityFields()));
+  }
+
+  /**
+   * admin.users_list → { ok, users:[{id,display,username,red,blue,premium}], ... }
+   */
+  function adminUsersList() {
+    const owner = ownerId();
+    if (owner === 'guest' || !isAdmin()) {
+      return Promise.resolve({ ok: false, err: 'admin_required', users: [] });
+    }
+    return rpc('admin.users_list', adminCallerFields({ user: owner })).then(function (r) {
+      if (!r || !r.ok) {
+        return {
+          ok: false,
+          err: (r && r.err) || 'rpc_failed',
+          users: [],
+          reply: r && r.reply,
+        };
+      }
+      const users = [];
+      String(r.body || '').split(/\r?\n/).forEach(function (line) {
+        line = line.trim();
+        if (!line) return;
+        const p = line.split('|');
+        if (p.length < 6) return;
+        users.push({
+          id: p[0],
+          display: p[1] || p[0],
+          username: p[2] || '',
+          red: parseInt(p[3], 10) || 0,
+          blue: parseInt(p[4], 10) || 0,
+          premium: p[5] === '1',
+        });
+      });
+      return { ok: true, users: users, reply: r.reply, count: users.length };
+    });
+  }
+
+  function adminWalletSet(userId, red, blue) {
+    const owner = ownerId();
+    if (owner === 'guest' || !isAdmin()) {
+      return Promise.resolve({ ok: false, err: 'admin_required' });
+    }
+    return rpc('admin.wallet_set', adminCallerFields({
+      user: String(userId),
+      red: String(red == null ? 0 : red),
+      blue: String(blue == null ? 0 : blue),
+    }));
+  }
+
+  function adminPremiumSet(userId, active) {
+    const owner = ownerId();
+    if (owner === 'guest' || !isAdmin()) {
+      return Promise.resolve({ ok: false, err: 'admin_required' });
+    }
+    const on = !!active;
+    return rpc('admin.premium_set', adminCallerFields({
+      user: String(userId),
+      five130: on ? '1' : '0',
+      active: on ? '1' : '0',
+      five130_until: '0',
+    }));
   }
 
   global.Five130MatchStore = {
@@ -606,6 +713,8 @@
     ownerDiag: ownerDiag,
     telegramUser: telegramUser,
     telegramDisplayName: telegramDisplayName,
+    isAdmin: isAdmin,
+    identityFields: identityFields,
     listMatches: listMatches,
     listMatchesMerged: listMatchesMerged,
     loadMatch: loadMatch,
@@ -620,6 +729,10 @@
     configureCloudFromCfgText: configureCloudFromCfgText,
     cloudStatus: cloudStatus,
     getPremiumStatus: getPremiumStatus,
+    touchUser: touchUser,
+    adminUsersList: adminUsersList,
+    adminWalletSet: adminWalletSet,
+    adminPremiumSet: adminPremiumSet,
     saveCloudSnap: saveCloudSnap,
     saveCloudFull: saveCloudFull,
     cloudList: cloudList,

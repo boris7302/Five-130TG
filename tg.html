@@ -361,16 +361,16 @@
     }
 
     /* Modal */
-    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal, #game-mode-modal, #matches-modal {
+    #modal, #debug-modal, #profile-modal, #spinner-modal, #help-modal, #help-rules-modal, #help-usage-modal, #game-mode-modal, #matches-modal, #admin-modal {
       display: none; position: fixed; inset: 0; z-index: 50;
       background: rgba(0,0,0,.55); align-items: center; justify-content: center; padding: 16px;
     }
     #modal.open, #debug-modal.open, #profile-modal.open, #spinner-modal.open,
     #help-modal.open, #help-rules-modal.open, #help-usage-modal.open, #game-mode-modal.open,
-    #matches-modal.open { display: flex; }
+    #matches-modal.open, #admin-modal.open { display: flex; }
     #modal .card, #debug-modal .card, #profile-modal .card, #spinner-modal .card,
     #help-modal .card, #help-rules-modal .card, #help-usage-modal .card, #game-mode-modal .card,
-    #matches-modal .card {
+    #matches-modal .card, #admin-modal .card {
       width: min(420px, 100%); background: #1e3f34; color: var(--text);
       border: 1px solid rgba(201,162,39,.45); border-radius: 16px; padding: 18px 16px;
       box-shadow: 0 12px 40px rgba(0,0,0,.45);
@@ -378,19 +378,19 @@
     #help-rules-modal .card, #help-usage-modal .card { width: min(520px, 100%); }
     #modal h2, #debug-modal h2, #profile-modal h2, #spinner-modal h2,
     #help-modal h2, #help-rules-modal h2, #help-usage-modal h2, #game-mode-modal h2,
-    #matches-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
+    #matches-modal h2, #admin-modal h2 { margin: 0 0 10px; font-size: 1.15rem; }
     #modal .lines, #debug-modal .lines, #profile-modal .lines, #spinner-modal .lines,
-    #help-modal .lines, #game-mode-modal .lines, #matches-modal .lines {
+    #help-modal .lines, #game-mode-modal .lines, #matches-modal .lines, #admin-modal .lines {
       font-size: 0.9rem; line-height: 1.45; color: var(--muted); margin-bottom: 14px;
     }
     #modal .lines strong, #debug-modal .lines strong, #profile-modal .lines strong, #spinner-modal .lines strong,
-    #help-modal .lines strong, #matches-modal .lines strong { color: var(--text); font-weight: 700; }
+    #help-modal .lines strong, #matches-modal .lines strong, #admin-modal .lines strong { color: var(--text); font-weight: 700; }
     #modal .btns, #debug-modal .btns, #profile-modal .btns, #spinner-modal .btns,
     #help-modal .btns, #help-rules-modal .btns, #help-usage-modal .btns, #game-mode-modal .btns,
-    #matches-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    #matches-modal .btns, #admin-modal .btns { display: flex; gap: 10px; flex-wrap: wrap; }
     #modal .btns button, #debug-modal .btns button, #profile-modal .btns button, #spinner-modal .btns button,
     #help-modal .btns button, #help-rules-modal .btns button, #help-usage-modal .btns button, #game-mode-modal .btns button,
-    #matches-modal .btns button {
+    #matches-modal .btns button, #admin-modal .btns button {
       flex: 1; min-width: 120px; padding: 12px; border-radius: 12px; border: none;
       font-weight: 700; font-size: 0.95rem;
     }
@@ -511,12 +511,13 @@
       border: 1px solid rgba(245,240,230,.4);
     }
 
-    #profile-modal .profile-list, #spinner-modal .spinner-list, #matches-modal .matches-list {
+    #profile-modal .profile-list, #spinner-modal .spinner-list, #matches-modal .matches-list,
+    #admin-modal .admin-list {
       display: flex; flex-direction: column; gap: 8px; margin: 10px 0 14px;
       max-height: min(50vh, 360px); overflow: auto;
     }
     #profile-modal .profile-opt, #spinner-modal .spinner-opt, #help-modal .profile-opt,
-    #matches-modal .match-opt {
+    #matches-modal .match-opt, #admin-modal .admin-opt {
       display: flex; gap: 10px; align-items: flex-start;
       text-align: left; padding: 10px 12px; border-radius: 12px;
       border: 1px solid rgba(245,240,230,.3); background: rgba(0,0,0,.18);
@@ -525,6 +526,27 @@
     }
     #matches-modal .match-opt .tag { flex: 0 0 auto; font-weight: 900; color: var(--accent); }
     #matches-modal .match-opt .meta { color: var(--muted); font-size: 0.78rem; }
+    #admin-modal .admin-opt.selected {
+      border-color: rgba(255, 210, 74, 0.65);
+      background: rgba(255, 210, 74, 0.12);
+    }
+    #admin-modal .admin-opt .tag { flex: 0 0 auto; font-weight: 900; color: var(--accent); }
+    #admin-modal .admin-opt .meta { color: var(--muted); font-size: 0.78rem; }
+    #admin-modal .admin-edit {
+      display: none; flex-direction: column; gap: 8px; margin: 0 0 12px;
+      padding: 10px; border: 1px solid rgba(245,240,230,.22); border-radius: 10px;
+    }
+    #admin-modal .admin-edit.open { display: flex; }
+    #admin-modal .admin-edit label {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      font-size: 0.88rem; color: var(--muted);
+    }
+    #admin-modal .admin-edit input[type="number"] {
+      width: 7rem; padding: 6px 8px; border-radius: 8px;
+      border: 1px solid rgba(245,240,230,.35); background: rgba(0,0,0,.25); color: var(--text);
+    }
+    #admin-btn { display: none; }
+    #admin-btn.on { display: inline-flex; }
     #profile-modal .profile-opt.selected, #spinner-modal .spinner-opt.selected {
       border-color: var(--accent); background: rgba(201,162,39,.18);
     }
@@ -572,7 +594,7 @@
 <body>
   <header>
     <div class="hdr-left">
-      <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#056)</span></h1>
+      <h1>Пятак-130<span class="ver" id="app-ver">v0.003 (rev.#058)</span></h1>
       <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
       <div id="tg-user" class="guest" title="Telegram-аккаунт">TG: …</div>
       <div id="tg-premium" title="Премиум Five-130">Премиум</div>
@@ -631,6 +653,7 @@
     <button class="action" id="save" type="button">Сохранить</button>
     <button class="action" id="list" type="button">Партии</button>
     <button class="action" id="help-action" type="button">Помощь</button>
+    <button class="action" id="admin-btn" type="button" title="Панель администратора">Админ</button>
     <button class="action" id="debug" type="button">Отладка</button>
   </div>
   <div id="store-status"></div>
@@ -742,6 +765,27 @@
     </div>
   </div>
 
+  <div id="admin-modal" role="dialog" aria-modal="true">
+    <div class="card">
+      <h2>Админ</h2>
+      <div class="lines" id="admin-modal-hint">Игроки, баллы и премиум.</div>
+      <div class="admin-list" id="admin-list"></div>
+      <div class="admin-edit" id="admin-edit">
+        <div class="lines" id="admin-edit-title">Игрок</div>
+        <label>Красные <input type="number" id="admin-red" min="0" step="1" value="0"></label>
+        <label>Синие <input type="number" id="admin-blue" min="0" step="1" value="0"></label>
+        <label>Премиум <input type="checkbox" id="admin-premium"></label>
+        <div class="btns">
+          <button type="button" id="admin-apply">Сохранить</button>
+        </div>
+      </div>
+      <div class="btns">
+        <button type="button" id="admin-refresh">Обновить</button>
+        <button type="button" id="admin-close">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
   <div id="modal" role="dialog" aria-modal="true">
     <div class="card">
       <h2 id="modal-title">Итоги игры</h2>
@@ -753,9 +797,9 @@
     </div>
   </div>
 
-  <script src="js/kv_parse.js?v=056"></script>
-  <script src="js/match_store.js?v=056"></script>
-  <script src="js/engine.js?v=056"></script>
+  <script src="js/kv_parse.js?v=058"></script>
+  <script src="js/match_store.js?v=058"></script>
+  <script src="js/engine.js?v=058"></script>
   <script>
     (function () {
       function applyTelegramChrome(tw) {
@@ -961,6 +1005,144 @@
           el.title = 'Telegram user не передан (облако только локально)';
         }
         refreshPremiumBadge();
+        refreshAdminButton();
+      }
+
+      var adminPick = null;
+
+      function escapeHtml(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function refreshAdminButton() {
+        var btn = document.getElementById('admin-btn');
+        var Store = window.Five130MatchStore;
+        if (!btn || !Store || !Store.isAdmin) return;
+        if (Store.isAdmin()) btn.classList.add('on');
+        else btn.classList.remove('on');
+      }
+
+      function closeAdminModal() {
+        var modalEl = document.getElementById('admin-modal');
+        var edit = document.getElementById('admin-edit');
+        if (modalEl) modalEl.classList.remove('open');
+        if (edit) edit.classList.remove('open');
+        adminPick = null;
+      }
+
+      function selectAdminUser(u) {
+        adminPick = u;
+        var edit = document.getElementById('admin-edit');
+        var title = document.getElementById('admin-edit-title');
+        var red = document.getElementById('admin-red');
+        var blue = document.getElementById('admin-blue');
+        var prem = document.getElementById('admin-premium');
+        if (!edit || !u) return;
+        var label = u.display || u.id;
+        if (u.username) label += ' (@' + u.username + ')';
+        if (title) title.innerHTML = '<strong>' + escapeHtml(label) + '</strong> · id ' + escapeHtml(u.id);
+        if (red) red.value = String(u.red || 0);
+        if (blue) blue.value = String(u.blue || 0);
+        if (prem) prem.checked = !!u.premium;
+        edit.classList.add('open');
+        var list = document.getElementById('admin-list');
+        if (list) {
+          Array.prototype.forEach.call(list.querySelectorAll('.admin-opt'), function (el) {
+            if (el.getAttribute('data-id') === u.id) el.classList.add('selected');
+            else el.classList.remove('selected');
+          });
+        }
+      }
+
+      function openAdminModal() {
+        var Store = window.Five130MatchStore;
+        var modalEl = document.getElementById('admin-modal');
+        var hint = document.getElementById('admin-modal-hint');
+        var list = document.getElementById('admin-list');
+        if (!Store || !modalEl || !Store.isAdmin || !Store.isAdmin()) {
+          setStoreStatus('Админ-панель только для allowlist');
+          return;
+        }
+        modalEl.classList.add('open');
+        if (hint) hint.textContent = 'Загрузка игроков…';
+        if (list) list.innerHTML = '';
+        var edit = document.getElementById('admin-edit');
+        if (edit) edit.classList.remove('open');
+        adminPick = null;
+        Store.adminUsersList().then(function (res) {
+          if (!res || !res.ok) {
+            if (hint) {
+              hint.textContent = 'Не удалось загрузить: ' + ((res && res.err) || 'ошибка');
+            }
+            return;
+          }
+          if (hint) {
+            hint.textContent = 'Игроков: ' + (res.count || 0) +
+              '. Выберите строку — правка баллов и премиума.';
+          }
+          if (!list) return;
+          if (!res.users || !res.users.length) {
+            list.innerHTML = '<div class="lines">Пока нет зарегистрированных игроков. Сохраните партию или откройте Mini App ещё раз.</div>';
+            return;
+          }
+          list.innerHTML = res.users.map(function (u) {
+            var name = u.display || u.id;
+            var un = u.username ? ('@' + u.username) : '';
+            var prem = u.premium ? 'премиум' : '—';
+            return '<button type="button" class="admin-opt" data-id="' + escapeHtml(u.id) + '">' +
+              '<span class="tag">' + escapeHtml(name) + '</span>' +
+              '<span class="meta">' + escapeHtml(un) +
+              ' · красн. ' + (u.red || 0) + ' · син. ' + (u.blue || 0) +
+              ' · ' + prem + '<br>id ' + escapeHtml(u.id) + '</span></button>';
+          }).join('');
+          Array.prototype.forEach.call(list.querySelectorAll('.admin-opt'), function (el) {
+            el.onclick = function () {
+              var id = el.getAttribute('data-id');
+              var found = null;
+              for (var i = 0; i < res.users.length; i++) {
+                if (res.users[i].id === id) { found = res.users[i]; break; }
+              }
+              if (found) selectAdminUser(found);
+            };
+          });
+        }).catch(function (e) {
+          if (hint) hint.textContent = 'Ошибка: ' + String(e && e.message ? e.message : e);
+        });
+      }
+
+      function applyAdminEdit() {
+        var Store = window.Five130MatchStore;
+        if (!Store || !adminPick) return;
+        var redEl = document.getElementById('admin-red');
+        var blueEl = document.getElementById('admin-blue');
+        var premEl = document.getElementById('admin-premium');
+        var red = redEl ? parseInt(redEl.value, 10) : 0;
+        var blue = blueEl ? parseInt(blueEl.value, 10) : 0;
+        if (isNaN(red) || red < 0) red = 0;
+        if (isNaN(blue) || blue < 0) blue = 0;
+        var wantPrem = !!(premEl && premEl.checked);
+        setStoreStatus('Сохранение…');
+        Promise.all([
+          Store.adminWalletSet(adminPick.id, red, blue),
+          Store.adminPremiumSet(adminPick.id, wantPrem),
+        ]).then(function (rs) {
+          var w = rs[0];
+          var p = rs[1];
+          if ((w && w.ok) && (p && p.ok)) {
+            setStoreStatus('Сохранено: ' + (adminPick.display || adminPick.id));
+            openAdminModal();
+            refreshPremiumBadge();
+          } else {
+            var err = (w && !w.ok && w.err) || (p && !p.ok && p.err) || 'ошибка';
+            setStoreStatus('Не сохранено: ' + err);
+          }
+        }).catch(function (e) {
+          setStoreStatus('Не сохранено: ' + String(e && e.message ? e.message : e));
+        });
       }
 
       function isPvpMode() {
@@ -2021,6 +2203,12 @@
             if (window.Five130MatchStore && Five130MatchStore.configureCloudFromCfgText) {
               Five130MatchStore.configureCloudFromCfgText(t);
               refreshPremiumBadge();
+              refreshAdminButton();
+              if (Five130MatchStore.touchUser) {
+                Five130MatchStore.touchUser().then(function () {
+                  refreshAdminButton();
+                }).catch(function () {});
+              }
             }
             return t;
           }).catch(function () { return tryNext(i + 1); });
@@ -2197,6 +2385,11 @@
       document.getElementById('matches-close').onclick = function () {
         document.getElementById('matches-modal').classList.remove('open');
       };
+
+      document.getElementById('admin-btn').onclick = openAdminModal;
+      document.getElementById('admin-close').onclick = closeAdminModal;
+      document.getElementById('admin-refresh').onclick = openAdminModal;
+      document.getElementById('admin-apply').onclick = applyAdminEdit;
 
       document.getElementById('debug').onclick = runDebugExport;
       document.getElementById('debug-close').onclick = function () {
