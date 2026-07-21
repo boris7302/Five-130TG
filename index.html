@@ -11,7 +11,7 @@
     /* Telegram Mobile WebView часто держит старый tg.html.
        Меняем query appver=REV → новый URL → свежая загрузка. */
     (function () {
-      var APP_HTML_REV = '047';
+      var APP_HTML_REV = '048';
       try {
         var q = new URLSearchParams(location.search || '');
         if (q.get('appver') !== APP_HTML_REV) {
@@ -526,7 +526,7 @@
   <header>
     <div class="hdr-left">
       <h1>Пятак-130<span class="ver" id="app-ver">v0.002 (rev.#047)</span></h1>
-      <div id="matchup" title="Кто с кем играет">Вы vs Компьютер</div>
+      <div id="matchup" title="Кто с кем играет">Вы vs ИИ</div>
     </div>
     <div class="hdr-center" title="Дата и время">
       <div id="clock">--/--/-- --:--:--</div>
@@ -546,7 +546,7 @@
           </span>
           <span class="stones-col">
             <span class="n" id="stones-ai">7</span>
-            <span class="stones-player" id="stones-p1">ПК</span>
+            <span class="stones-player" id="stones-p1">ИИ</span>
           </span>
         </span>
       </div>
@@ -593,7 +593,7 @@
       <div class="lines">Выберите режим. «Два игрока» — по очереди на одном устройстве; онлайн-соперник — позже (нужен сервер).</div>
       <div class="profile-list">
         <button type="button" class="profile-opt" id="mode-ai-btn">
-          <span class="tag">1</span><span>Против компьютера</span>
+          <span class="tag">1</span><span>Против ИИ</span>
         </button>
         <button type="button" class="profile-opt" id="mode-pvp-btn">
           <span class="tag">2</span><span>Два игрока (одно устройство)</span>
@@ -779,7 +779,7 @@
       function playerName(idx) {
         var m = match();
         if (m && m.playerNames && m.playerNames[idx]) return m.playerNames[idx];
-        return idx === 0 ? 'Вы' : 'Компьютер';
+        return idx === 0 ? 'Вы' : 'ИИ';
       }
 
       function shortPlayerLabel(name) {
@@ -790,7 +790,7 @@
       function resolvePlayerNames(mode) {
         if (mode === E.GameMode.PVP) return E.defaultPlayerNames(E.GameMode.PVP);
         var you = telegramUserName() || cfgBoard.playerName0 || 'Вы';
-        return [you, cfgBoard.playerName1 || 'Компьютер'];
+        return [you, cfgBoard.playerName1 || 'ИИ'];
       }
 
       function syncPlayerLabelsToUi(names) {
@@ -893,7 +893,7 @@
         r.actionLog.slice().reverse().forEach(function (a) {
           var row = document.createElement('div');
           row.className = 'row ' + (a.player === E.HUMAN ? 'you' : 'pc');
-          var who = a.player === E.HUMAN ? 'Вы' : 'Компьютер';
+          var who = a.player === E.HUMAN ? 'Вы' : 'ИИ';
           var text = a.text || '';
           var bm = /^взял с рынка:\s*(\d+)\s*$/.exec(text);
           if (bm) {
@@ -1298,7 +1298,7 @@
           var low0 = String(st0).toLowerCase();
           if (low0.indexOf('победа') >= 0) {
             lines.push('<div class="result-headline win">' + st0 + '</div>');
-          } else if (low0.indexOf('компьютер') >= 0 || low0.indexOf('проигр') >= 0) {
+          } else if (low0.indexOf('компьютер') >= 0 || low0.indexOf('ии') >= 0 || low0.indexOf('проигр') >= 0) {
             lines.push('<div class="result-headline lose">' + st0 + '</div>');
           } else if (low0.indexOf('ничья') >= 0) {
             lines.push('<div class="result-headline draw">Ничья!</div>');
@@ -1534,7 +1534,7 @@
         openingBorder: '#ffd24a',
         clockEnabled: true,
         playerName0: 'Вы',
-        playerName1: 'Компьютер',
+        playerName1: 'ИИ',
         matchupColor: '#ffd24a'
       };
 
@@ -1564,7 +1564,7 @@
         var el = document.getElementById('matchup');
         if (!el) return;
         var a = cfgBoard.playerName0 || 'Вы';
-        var b = cfgBoard.playerName1 || 'Компьютер';
+        var b = cfgBoard.playerName1 || 'ИИ';
         el.textContent = a + ' vs ' + b;
       }
       setInterval(updateClock, 1000);
@@ -1979,7 +1979,7 @@
             '<h3>Кто ходит первым</h3>' +
             '<ul>' +
             '<li>В <strong>первой игре партии</strong> первый камень ставится автоматически по приоритету: наименьший дубль среди 1|1…5|5; если таких нет — ординары из фиксированного списка (1|2, 1|3, …).</li>' +
-            '<li>Камни <strong>0|0 и 6|6 нельзя ставить первым ходом</strong> ни в первой, ни в любой следующей игре — ни вам, ни компьютеру.</li>' +
+            '<li>Камни <strong>0|0 и 6|6 нельзя ставить первым ходом</strong> ни в первой, ни в любой следующей игре — ни вам, ни ИИ.</li>' +
             '<li>Во <strong>2-й и далее</strong> играх первым ходит победитель прошлой игры (или автор «рыбы») — любым камнем из руки, кроме 0|0 и 6|6.</li>' +
             '</ul>'
         },
@@ -2078,7 +2078,7 @@
           html:
             '<h3>Что видно на экране</h3>' +
             '<ul>' +
-            '<li>Шапка: название, версия, «Вы vs Компьютер», часы, день недели, камни в руке и счёт.</li>' +
+            '<li>Шапка: название, версия, «Вы vs ИИ», часы, день недели, камни в руке и счёт.</li>' +
             '<li>Закрытый спиннер подсвечивается по выбранному стилю якоря (rust / amber / slate / ink).</li>' +
             '<li>Последний ход противника отмечается рамкой и цветными точками (без неоновой обводки).</li>' +
             '<li>Если камней много, стол на телефоне можно прокручивать пальцем.</li>' +

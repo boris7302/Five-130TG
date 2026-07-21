@@ -19,7 +19,7 @@
   /** Версия Mini App / JS-движка (как APP_VERSION в C++). */
   const APP_VERSION = "0.002";
   /** Субверсия = порядковый номер коммита gh-pages (docs/versions_history.txt). */
-  const APP_REV = 47;
+  const APP_REV = 48;
   function appVersionLabel() {
     const rev = String(APP_REV).padStart(3, '0');
     return 'v' + APP_VERSION + ' (rev.#' + rev + ')';
@@ -528,7 +528,7 @@
         });
         round.message = 'Автооткрытие: ' + op.tile.label;
       } else {
-        round.message = 'Первый ход партии: ' + op.tile.label + ' (компьютер)';
+        round.message = 'Первый ход партии: ' + op.tile.label + ' (ИИ)';
       }
     } else {
       round.starter = match.lastWinner;
@@ -653,17 +653,17 @@
     if (match && match.playerNames && match.playerNames[player]) {
       return match.playerNames[player];
     }
-    return player === HUMAN ? 'Вы' : 'Компьютер';
+    return player === HUMAN ? 'Вы' : 'ИИ';
   }
 
-  /** Слот управляется ИИ (только режим vs ПК). */
+  /** Слот управляется ИИ (только режим vs ИИ). */
   function isAiControlled(match, player) {
     return match && match.gameMode !== GameMode.PVP && player === AI;
   }
 
   function defaultPlayerNames(gameMode) {
     if (gameMode === GameMode.PVP) return ['Игрок 1', 'Игрок 2'];
-    return ['Вы', 'Компьютер'];
+    return ['Вы', 'ИИ'];
   }
 
   /** «N камень/камня/камней». */
